@@ -16,7 +16,6 @@ from .validation import (
     plain_json_mapping,
 )
 
-
 RUN_SNAPSHOT_SCHEMA_VERSION = 1
 
 
