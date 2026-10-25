@@ -13,3 +13,4 @@ All notable changes to this project will be documented in this file.
 - Initial architecture decision records.
 - Typed `RunId`, `WorkloadId`, `FailureId` and `EventId` domain identifiers.
 - Canonical `RunState` enum with explicit stable string values and terminal-state classification.
+- Backend-agnostic Workload model with durable references, descriptors and declarative resource hints.
