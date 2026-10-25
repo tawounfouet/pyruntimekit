@@ -265,9 +265,7 @@ def test_runner_rejects_mismatched_workload_identity_before_execution() -> None:
 def test_runner_relies_on_kernel_to_reject_non_queued_run() -> None:
     kernel = RuntimeKernel()
     workload = _workload()
-    created = kernel.create(
-        CreateRun(at=T0, workload_id=workload.workload_id)
-    ).run
+    created = kernel.create(CreateRun(at=T0, workload_id=workload.workload_id)).run
     runner = SimpleRunner(
         kernel=kernel,
         executor=RecordingExecutor(ExecutionResult[object].success()),
@@ -341,9 +339,7 @@ def test_runner_validates_run_and_workload_types() -> None:
     with pytest.raises(TypeError, match="run must be a Run"):
         runner.run(cast(Any, object()), workload, correlation_id="corr")
 
-    created = kernel.create(
-        CreateRun(at=T0, workload_id=workload.workload_id)
-    ).run
+    created = kernel.create(CreateRun(at=T0, workload_id=workload.workload_id)).run
     with pytest.raises(TypeError, match="workload must be a Workload"):
         runner.run(created, cast(Any, object()), correlation_id="corr")
 
