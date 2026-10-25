@@ -1,6 +1,6 @@
 """Stable domain enumerations for PyRuntimeKit."""
 
-from enum import StrEnum
+from enum import IntEnum, StrEnum
 
 
 class RunState(StrEnum):
@@ -26,6 +26,26 @@ class RunState(StrEnum):
         return self in _TERMINAL_RUN_STATES
 
 
+class IsolationLevel(StrEnum):
+    """Declarative isolation preference for a Workload."""
+
+    NONE = "none"
+    THREAD = "thread"
+    PROCESS = "process"
+    SUBPROCESS = "subprocess"
+    CONTAINER = "container"
+    REMOTE = "remote"
+
+
+class Priority(IntEnum):
+    """Declarative Workload priority; it does not guarantee scheduling order."""
+
+    LOW = 10
+    NORMAL = 20
+    HIGH = 30
+    CRITICAL = 40
+
+
 _TERMINAL_RUN_STATES = frozenset(
     {
         RunState.SUCCEEDED,
@@ -37,4 +57,4 @@ _TERMINAL_RUN_STATES = frozenset(
 )
 
 
-__all__ = ["RunState"]
+__all__ = ["IsolationLevel", "Priority", "RunState"]
