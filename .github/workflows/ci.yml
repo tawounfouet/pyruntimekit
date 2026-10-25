@@ -41,3 +41,15 @@ jobs:
 
       - name: Build package
         run: python -m build
+
+      - name: Verify typed wheel
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from zipfile import ZipFile
+
+          wheels = list(Path("dist").glob("*.whl"))
+          assert len(wheels) == 1, f"expected exactly one wheel, got {len(wheels)}"
+          with ZipFile(wheels[0]) as wheel:
+              assert "pyruntimekit/py.typed" in wheel.namelist()
+          PY
