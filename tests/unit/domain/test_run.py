@@ -1,7 +1,7 @@
 """Tests for the Run aggregate and Run snapshots."""
 
 from dataclasses import FrozenInstanceError
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any, cast
 
 import pytest
@@ -18,7 +18,7 @@ from pyruntimekit.domain import (
 
 RUN_ID = RunId("550e8400-e29b-41d4-a716-446655440000")
 WORKLOAD_ID = WorkloadId("123e4567-e89b-12d3-a456-426614174000")
-CREATED_AT = datetime(2026, 10, 25, 15, 0, tzinfo=timezone.utc)
+CREATED_AT = datetime(2026, 10, 25, 15, 0, tzinfo=UTC)
 
 
 def test_run_creation_uses_canonical_initial_state_and_version() -> None:
@@ -101,7 +101,7 @@ def test_run_public_state_property_cannot_be_assigned() -> None:
     run = Run.create(WORKLOAD_ID, run_id=RUN_ID, created_at=CREATED_AT)
 
     with pytest.raises(AttributeError):
-        setattr(cast(Any, run), "state", RunState.SUCCEEDED)
+        cast(Any, run).state = RunState.SUCCEEDED
 
 
 def test_run_version_is_non_negative_and_monotone() -> None:
