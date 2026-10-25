@@ -25,9 +25,9 @@ from pyruntimekit.executors import (
     ExecutorCapabilities,
     ExecutorCapability,
     ExecutorDescriptor,
-    InlineExecutor,
     ResolvedWorkload,
 )
+from pyruntimekit.executors.inline import InlineExecutor
 from pyruntimekit.domain import RunId
 
 NOW = datetime(2026, 10, 25, 23, 55, tzinfo=UTC)
