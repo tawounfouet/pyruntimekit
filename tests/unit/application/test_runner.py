@@ -66,7 +66,8 @@ class RecordingExecutor:
 
 class InvalidExecutor:
     def execute(self, workload: Workload, context: ExecutionContext) -> ExecutionResult[object]:
-        return cast(Any, "not-an-execution-result")
+        invalid: object = "not-an-execution-result"
+        return cast(ExecutionResult[object], invalid)
 
 
 class ExplodingExecutor:
