@@ -30,6 +30,8 @@ def transition_run(
 
     validate_transition(run.state, next_state)
 
+    next_attempt: AttemptNumber | None
+
     if next_state is RunState.RUNNING:
         if attempt is None:
             raise KernelInvariantError("RUNNING transition requires the next AttemptNumber")
