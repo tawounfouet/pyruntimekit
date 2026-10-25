@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from typing import Protocol
 
 from pyruntimekit.contexts import ExecutionContext
+from pyruntimekit.domain.ids import WorkloadId
 from pyruntimekit.domain.result import ExecutionResult
 from pyruntimekit.domain.validation import require_text
 from pyruntimekit.domain.workload import Workload
@@ -31,7 +32,7 @@ class ResolvedWorkload:
             raise TypeError("implementation must be callable")
 
     @property
-    def workload_id(self):
+    def workload_id(self) -> WorkloadId:
         """Return the identity of the declarative Workload."""
         return self.workload.workload_id
 
