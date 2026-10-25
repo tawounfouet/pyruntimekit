@@ -20,3 +20,4 @@ All notable changes to this project will be documented in this file.
 - Backend-neutral generic `ExecutionResult` / `RunResult` contracts with immutable `ArtifactRef` and typed `ArtifactId`.
 - Immutable versioned Run domain events with stable event types, UTC timestamps, aggregate versions and serializable payloads.
 - Canonical Run lifecycle transition matrix with pure domain invariant validators and transition errors.
+- Domain qualification checks for architectural boundaries, public exports, typed identifiers, PEP 561 packaging and the `>=95%` coverage gate.
