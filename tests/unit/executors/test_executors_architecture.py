@@ -8,6 +8,7 @@ from pathlib import Path
 
 import pyruntimekit
 import pyruntimekit.executors as executors
+from pyruntimekit.executors.inline import InlineExecutor
 
 FORBIDDEN_EXECUTOR_IMPORT_ROOTS = frozenset(
     {
@@ -57,7 +58,9 @@ def _imports(path: Path) -> set[str]:
 
 
 def test_executors_package_is_importable_without_root_api_expansion() -> None:
-    assert executors.InlineExecutor is not None
+    assert executors.Executor is not None
+    assert InlineExecutor is not None
+    assert not hasattr(executors, "InlineExecutor")
     assert not hasattr(pyruntimekit, "InlineExecutor")
     assert not hasattr(pyruntimekit, "Executor")
 
