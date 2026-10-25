@@ -27,7 +27,7 @@ jobs:
       - name: Resolve release target
         id: release
         env:
-          BOOTSTRAP_RELEASE: ${{ startsWith(github.event.head_commit.message, 'chore(release): bootstrap publisher') }}
+          BOOTSTRAP_RELEASE: "${{ startsWith(github.event.head_commit.message, 'chore(release): bootstrap publisher') }}"
         shell: bash
         run: |
           if [[ "${BOOTSTRAP_RELEASE}" == "true" ]]; then
