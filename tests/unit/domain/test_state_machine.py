@@ -23,12 +23,8 @@ from pyruntimekit.domain import (
 FINISHED_AT = datetime(2026, 10, 25, 18, 0, tzinfo=UTC)
 
 EXPECTED_TRANSITIONS: dict[RunState, frozenset[RunState]] = {
-    RunState.CREATED: frozenset(
-        {RunState.ADMITTED, RunState.CANCELLED, RunState.ABORTED}
-    ),
-    RunState.ADMITTED: frozenset(
-        {RunState.QUEUED, RunState.CANCELLED, RunState.ABORTED}
-    ),
+    RunState.CREATED: frozenset({RunState.ADMITTED, RunState.CANCELLED, RunState.ABORTED}),
+    RunState.ADMITTED: frozenset({RunState.QUEUED, RunState.CANCELLED, RunState.ABORTED}),
     RunState.QUEUED: frozenset(
         {
             RunState.RUNNING,
