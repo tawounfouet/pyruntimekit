@@ -11,3 +11,4 @@ All notable changes to this project will be documented in this file.
 - Ruff, mypy, pytest, coverage and package-build baseline.
 - GitHub Actions continuous integration workflow.
 - Initial architecture decision records.
+- Typed `RunId`, `WorkloadId`, `FailureId` and `EventId` domain identifiers.
