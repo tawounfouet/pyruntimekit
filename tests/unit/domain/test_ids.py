@@ -8,9 +8,7 @@ import pytest
 
 from pyruntimekit.domain import ArtifactId, EventId, FailureId, RunId, WorkloadId
 
-IdentifierType = (
-    type[ArtifactId] | type[RunId] | type[WorkloadId] | type[FailureId] | type[EventId]
-)
+IdentifierType = type[ArtifactId] | type[RunId] | type[WorkloadId] | type[FailureId] | type[EventId]
 
 IDENTIFIER_TYPES: tuple[IdentifierType, ...] = (
     ArtifactId,
