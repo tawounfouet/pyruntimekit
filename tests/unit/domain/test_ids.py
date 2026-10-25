@@ -47,8 +47,8 @@ def test_same_identifier_type_compares_and_hashes_by_value() -> None:
 def test_different_identifier_types_do_not_compare_equal() -> None:
     value = "550e8400-e29b-41d4-a716-446655440000"
 
-    run_id = RunId(value)
-    workload_id = WorkloadId(value)
+    run_id: object = RunId(value)
+    workload_id: object = WorkloadId(value)
 
     assert run_id != workload_id
 
