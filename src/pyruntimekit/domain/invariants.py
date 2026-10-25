@@ -12,7 +12,6 @@ from .exceptions import DomainInvariantError, InvalidRunTransitionError
 from .ids import RunId
 from .validation import normalize_aware_datetime
 
-
 _ALLOWED_RUN_TRANSITIONS: Final = MappingProxyType(
     {
         RunState.CREATED: frozenset(
