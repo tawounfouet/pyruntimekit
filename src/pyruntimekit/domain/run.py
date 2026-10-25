@@ -70,7 +70,12 @@ class RunSnapshot:
         if updated < created:
             raise ValueError("updated_at must not be earlier than created_at")
         if self.current_attempt is not None:
-            AttemptNumber(self.current_attempt)
+            try:
+                AttemptNumber(self.current_attempt)
+            except TypeError as exc:
+                raise TypeError("current_attempt must be an integer or None") from exc
+            except ValueError as exc:
+                raise ValueError("current_attempt must be greater than or equal to one") from exc
         object.__setattr__(
             self,
             "metadata",
