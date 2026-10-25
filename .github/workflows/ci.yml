@@ -28,7 +28,7 @@ jobs:
           python -m pip install -e ".[dev]"
 
       - name: Lint
-        run: ruff check --fix --diff src/pyruntimekit/executors/base.py src/pyruntimekit/executors/inline.py
+        run: ruff check .
 
       - name: Format check
         run: ruff format --check .
