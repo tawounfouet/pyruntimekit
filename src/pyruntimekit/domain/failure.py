@@ -17,7 +17,6 @@ from .validation import (
     require_text,
 )
 
-
 FAILURE_SCHEMA_VERSION = 1
 _FAILURE_CODE_PATTERN = re.compile(r"^[A-Z][A-Z0-9]*(?:[._-][A-Z0-9]+)*$")
 
