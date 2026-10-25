@@ -1,0 +1,88 @@
+name: Publish Release
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    if: >-
+      startsWith(github.event.head_commit.message, 'chore(release): bootstrap publisher')
+      || startsWith(github.event.head_commit.message, 'release: cut PyRuntimeKit')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Resolve release target
+        id: release
+        shell: bash
+        run: |
+          if [[ "${{ github.event.head_commit.message }}" == chore\(release\):\ bootstrap\ publisher* ]]; then
+            TARGET_SHA="${{ github.event.before }}"
+          else
+            TARGET_SHA="${{ github.sha }}"
+          fi
+
+          VERSION="$(git show "${TARGET_SHA}:pyproject.toml" | python -c 'import sys, tomllib; print(tomllib.loads(sys.stdin.read())["project"]["version"])')"
+          TAG="v${VERSION}"
+          NOTES_PATH="docs/releases/${VERSION}.md"
+
+          git cat-file -e "${TARGET_SHA}^{commit}"
+          git show "${TARGET_SHA}:${NOTES_PATH}" > /tmp/release-notes.md
+
+          echo "target_sha=${TARGET_SHA}" >> "${GITHUB_OUTPUT}"
+          echo "version=${VERSION}" >> "${GITHUB_OUTPUT}"
+          echo "tag=${TAG}" >> "${GITHUB_OUTPUT}"
+
+      - name: Build release artifacts
+        shell: bash
+        run: |
+          git checkout --detach "${{ steps.release.outputs.target_sha }}"
+          python -m pip install --upgrade pip
+          python -m pip install build
+          python -m build
+
+      - name: Create or verify tag
+        shell: bash
+        run: |
+          TAG="${{ steps.release.outputs.tag }}"
+          TARGET_SHA="${{ steps.release.outputs.target_sha }}"
+
+          if git rev-parse -q --verify "refs/tags/${TAG}" >/dev/null; then
+            EXISTING_SHA="$(git rev-list -n 1 "${TAG}")"
+            test "${EXISTING_SHA}" = "${TARGET_SHA}"
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git tag -a "${TAG}" "${TARGET_SHA}" -m "PyRuntimeKit ${{ steps.release.outputs.version }}"
+            git push origin "${TAG}"
+          fi
+
+      - name: Create or update GitHub pre-release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          TAG="${{ steps.release.outputs.tag }}"
+          VERSION="${{ steps.release.outputs.version }}"
+
+          if gh release view "${TAG}" >/dev/null 2>&1; then
+            gh release upload "${TAG}" dist/* --clobber
+          else
+            gh release create "${TAG}" dist/* \
+              --verify-tag \
+              --prerelease \
+              --title "PyRuntimeKit ${VERSION}" \
+              --notes-file /tmp/release-notes.md
+          fi
