@@ -10,7 +10,6 @@ from pathlib import Path
 import pyruntimekit
 import pyruntimekit.domain as domain
 
-
 FORBIDDEN_DOMAIN_IMPORT_ROOTS = frozenset(
     {
         "asyncio",
