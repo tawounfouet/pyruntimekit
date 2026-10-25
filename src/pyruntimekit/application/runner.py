@@ -28,6 +28,7 @@ class RunnerContractError(ValueError):
 class InvalidExecutorResultError(RunnerContractError):
     """Raised when a configured executor violates the result contract."""
 
+
 type RunnerClock = Callable[[], datetime]
 
 
