@@ -214,8 +214,7 @@ class Workload:
     def __post_init__(self) -> None:
         object.__setattr__(self, "metadata", _FrozenJsonMapping(self.metadata))
         normalized_policy_refs = tuple(
-            _require_text(policy_ref, field_name="policy_ref")
-            for policy_ref in self.policy_refs
+            _require_text(policy_ref, field_name="policy_ref") for policy_ref in self.policy_refs
         )
         object.__setattr__(self, "policy_refs", normalized_policy_refs)
 
