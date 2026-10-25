@@ -14,9 +14,8 @@ from pyruntimekit.domain.enums import (
 )
 from pyruntimekit.domain.failure import Failure, FailureCauseSummary, FailureCode
 from pyruntimekit.domain.result import ExecutionResult
-
-from .base import ExecutorDescriptor, ResolvedWorkload
-from .capabilities import INLINE_EXECUTOR_CAPABILITIES
+from pyruntimekit.executors.base import ExecutorDescriptor, ResolvedWorkload
+from pyruntimekit.executors.capabilities import INLINE_EXECUTOR_CAPABILITIES
 
 
 type ExecutorClock = Callable[[], datetime]
