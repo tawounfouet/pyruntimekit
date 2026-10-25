@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from datetime import datetime
 
+from pyruntimekit.domain.attempt import AttemptNumber
 from pyruntimekit.domain.enums import RunState
 from pyruntimekit.domain.events import (
     DomainEvent,
@@ -161,26 +162,16 @@ class RuntimeKernel:
         *,
         at: datetime,
         event_type: type[DomainEvent],
-        attempt: object | None = None,
+        attempt: AttemptNumber | None = None,
         payload: Mapping[str, object] | None = None,
         final_result: RunResult[object] | None = None,
     ) -> KernelDecision:
-        from pyruntimekit.domain.attempt import AttemptNumber
-
-        typed_attempt: AttemptNumber | None
-        if attempt is None:
-            typed_attempt = None
-        elif isinstance(attempt, AttemptNumber):
-            typed_attempt = attempt
-        else:
-            raise TypeError("attempt must be an AttemptNumber or None")
-
         previous_state = run.state
         updated = transition_run(
             run,
             next_state,
             at=at,
-            attempt=typed_attempt,
+            attempt=attempt,
         )
         event = event_type.create(
             run_id=updated.run_id,
