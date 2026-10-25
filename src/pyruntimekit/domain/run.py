@@ -6,6 +6,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 
+from .attempt import AttemptNumber
 from .enums import RunState
 from .ids import RunId, WorkloadId
 from .validation import (
@@ -69,10 +70,7 @@ class RunSnapshot:
         if updated < created:
             raise ValueError("updated_at must not be earlier than created_at")
         if self.current_attempt is not None:
-            if isinstance(self.current_attempt, bool) or not isinstance(self.current_attempt, int):
-                raise TypeError("current_attempt must be an integer or None")
-            if self.current_attempt < 1:
-                raise ValueError("current_attempt must be greater than or equal to one")
+            AttemptNumber(self.current_attempt)
         object.__setattr__(
             self,
             "metadata",
@@ -123,7 +121,7 @@ class Run:
         self._version = RunVersion.initial()
         self._created_at = timestamp
         self._updated_at = timestamp
-        self._current_attempt: int | None = None
+        self._current_attempt: AttemptNumber | None = None
         self._metadata = freeze_json_mapping(metadata, field_name="metadata")
 
     @classmethod
@@ -158,7 +156,9 @@ class Run:
         run._state = RunState(snapshot.state)
         run._version = RunVersion(snapshot.version)
         run._updated_at = datetime_from_utc_iso(snapshot.updated_at, field_name="updated_at")
-        run._current_attempt = snapshot.current_attempt
+        run._current_attempt = (
+            None if snapshot.current_attempt is None else AttemptNumber(snapshot.current_attempt)
+        )
         return run
 
     @property
@@ -186,7 +186,7 @@ class Run:
         return self._updated_at
 
     @property
-    def current_attempt(self) -> int | None:
+    def current_attempt(self) -> AttemptNumber | None:
         return self._current_attempt
 
     @property
@@ -211,7 +211,7 @@ class Run:
             version=self._version.value,
             created_at=datetime_to_utc_iso(self._created_at, field_name="created_at"),
             updated_at=datetime_to_utc_iso(self._updated_at, field_name="updated_at"),
-            current_attempt=self._current_attempt,
+            current_attempt=None if self._current_attempt is None else self._current_attempt.value,
             metadata=self._metadata,
         )
 
