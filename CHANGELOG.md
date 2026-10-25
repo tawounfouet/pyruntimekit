@@ -7,7 +7,7 @@ All notable changes to this project will be documented in this file.
 ### Added
 
 - `RuntimeKernel` command/decision authority for Run creation and canonical lifecycle transitions.
-- Immutable kernel command contracts, pure transition engine and kernel architecture boundary tests.
+- Immutable kernel command contracts, pure transition engine and kernel architecture boundary tests.\n- Immutable attempt-scoped `ExecutionContext` with correlation, optional tracing metadata and architecture isolation.
 
 ## [0.1.0a1] - 2026-10-25
 
