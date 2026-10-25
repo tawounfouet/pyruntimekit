@@ -18,3 +18,4 @@ All notable changes to this project will be documented in this file.
 - Immutable `Attempt` model with one-based `AttemptNumber` and stable terminal `AttemptOutcome` values.
 - Normalized durable `Failure` model with normative category/origin/severity/scope taxonomies, symbolic codes and safe serialization.
 - Backend-neutral generic `ExecutionResult` / `RunResult` contracts with immutable `ArtifactRef` and typed `ArtifactId`.
+- Immutable versioned Run domain events with stable event types, UTC timestamps, aggregate versions and serializable payloads.
