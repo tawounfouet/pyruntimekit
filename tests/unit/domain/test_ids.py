@@ -6,11 +6,17 @@ from uuid import UUID
 
 import pytest
 
-from pyruntimekit.domain import EventId, FailureId, RunId, WorkloadId
+from pyruntimekit.domain import ArtifactId, EventId, FailureId, RunId, WorkloadId
 
-IdentifierType = type[RunId] | type[WorkloadId] | type[FailureId] | type[EventId]
+IdentifierType = type[ArtifactId] | type[RunId] | type[WorkloadId] | type[FailureId] | type[EventId]
 
-IDENTIFIER_TYPES: tuple[IdentifierType, ...] = (RunId, WorkloadId, FailureId, EventId)
+IDENTIFIER_TYPES: tuple[IdentifierType, ...] = (
+    ArtifactId,
+    RunId,
+    WorkloadId,
+    FailureId,
+    EventId,
+)
 
 
 @pytest.mark.parametrize("identifier_type", IDENTIFIER_TYPES)
