@@ -3,8 +3,8 @@
 import json
 
 import pytest
-from pyruntimekit.domain import RunState
 
+from pyruntimekit.domain import RunState
 
 CANONICAL_RUN_STATES = (
     "CREATED",
