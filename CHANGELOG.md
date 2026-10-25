@@ -17,3 +17,4 @@ All notable changes to this project will be documented in this file.
 - Principal `Run` aggregate with monotone `RunVersion` and immutable schema-versioned `RunSnapshot`.
 - Immutable `Attempt` model with one-based `AttemptNumber` and stable terminal `AttemptOutcome` values.
 - Normalized durable `Failure` model with normative category/origin/severity/scope taxonomies, symbolic codes and safe serialization.
+- Backend-neutral generic `ExecutionResult` / `RunResult` contracts with immutable `ArtifactRef` and typed `ArtifactId`.

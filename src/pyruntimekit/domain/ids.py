@@ -60,8 +60,12 @@ class FailureId(_UuidIdentifier):
     """Identity of a normalized runtime Failure."""
 
 
+class ArtifactId(_UuidIdentifier):
+    """Identity of an immutable Artifact reference."""
+
+
 class EventId(_UuidIdentifier):
     """Identity of a domain Event."""
 
 
-__all__ = ["EventId", "FailureId", "RunId", "WorkloadId"]
+__all__ = ["ArtifactId", "EventId", "FailureId", "RunId", "WorkloadId"]

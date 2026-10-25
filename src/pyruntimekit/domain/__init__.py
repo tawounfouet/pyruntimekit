@@ -21,17 +21,21 @@ from .failure import (
     FailureCode,
     FailureDetails,
 )
-from .ids import EventId, FailureId, RunId, WorkloadId
+from .ids import ArtifactId, EventId, FailureId, RunId, WorkloadId
+from .result import ArtifactRef, ExecutionResult, RunResult
 from .run import RUN_SNAPSHOT_SCHEMA_VERSION, Run, RunSnapshot, RunVersion
 from .workload import ResourceHints, Workload, WorkloadDescriptor, WorkloadRef
 
 __all__ = [
     "FAILURE_SCHEMA_VERSION",
     "RUN_SNAPSHOT_SCHEMA_VERSION",
+    "ArtifactId",
+    "ArtifactRef",
     "Attempt",
     "AttemptNumber",
     "AttemptOutcome",
     "EventId",
+    "ExecutionResult",
     "Failure",
     "FailureCategory",
     "FailureCauseSummary",
@@ -46,6 +50,7 @@ __all__ = [
     "ResourceHints",
     "Run",
     "RunId",
+    "RunResult",
     "RunSnapshot",
     "RunState",
     "RunVersion",
