@@ -28,9 +28,7 @@ def test_simple_runner_and_inline_executor_form_executable_slice() -> None:
             reference="tests.integration.inline",
         ),
     )
-    created = kernel.create(
-        CreateRun(at=T0, workload_id=workload.workload_id)
-    ).run
+    created = kernel.create(CreateRun(at=T0, workload_id=workload.workload_id)).run
     admitted = kernel.apply(
         created,
         AdmitRun(at=T0 + timedelta(seconds=1)),
