@@ -15,9 +15,7 @@ class InvalidRunTransitionError(DomainInvariantError):
     def __init__(self, current_state: RunState, next_state: RunState) -> None:
         self.current_state = current_state
         self.next_state = next_state
-        super().__init__(
-            f"invalid Run transition: {current_state.value} -> {next_state.value}"
-        )
+        super().__init__(f"invalid Run transition: {current_state.value} -> {next_state.value}")
 
 
 __all__ = ["DomainInvariantError", "InvalidRunTransitionError"]
