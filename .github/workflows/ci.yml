@@ -53,3 +53,25 @@ jobs:
           with ZipFile(wheels[0]) as wheel:
               assert "pyruntimekit/py.typed" in wheel.namelist()
           PY
+
+      - name: Smoke install wheel
+        run: |
+          python -m venv .smoke-venv
+          .smoke-venv/bin/python -m pip install --no-deps dist/*.whl
+          .smoke-venv/bin/python - <<'PY'
+          import pyruntimekit
+          from pyruntimekit.domain import (
+              ExecutionResult,
+              Run,
+              RunCreated,
+              RunState,
+              Workload,
+          )
+
+          assert pyruntimekit.__version__ == "0.1.0a1"
+          assert RunState.CREATED.value == "CREATED"
+          assert Run is not None
+          assert Workload is not None
+          assert ExecutionResult is not None
+          assert RunCreated.EVENT_TYPE == "run.created"
+          PY
