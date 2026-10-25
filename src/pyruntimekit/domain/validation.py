@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import math
 from collections.abc import Iterator, Mapping
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import cast
 
 
@@ -102,7 +102,7 @@ def normalize_aware_datetime(value: datetime, *, field_name: str) -> datetime:
         raise TypeError(f"{field_name} must be a datetime")
     if value.tzinfo is None or value.utcoffset() is None:
         raise ValueError(f"{field_name} must be timezone-aware")
-    return value.astimezone(timezone.utc)
+    return value.astimezone(UTC)
 
 
 def datetime_to_utc_iso(value: datetime, *, field_name: str) -> str:
