@@ -73,7 +73,7 @@ def test_create_run_validates_and_freezes_metadata() -> None:
     )
     nested["labels"].append("mutated")
 
-    assert command.metadata["labels"] == ("alpha",)
+    assert command.metadata["labels"] == ["alpha"]
 
     with pytest.raises(TypeError):
         cast(Any, command.metadata)["other"] = "value"
