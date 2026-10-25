@@ -14,7 +14,6 @@ from pyruntimekit.domain.workload import Workload
 
 from .capabilities import ExecutorCapabilities
 
-
 type ResolvedCallable = Callable[[ExecutionContext], object]
 
 
