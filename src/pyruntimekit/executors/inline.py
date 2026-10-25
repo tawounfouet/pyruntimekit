@@ -18,7 +18,6 @@ from pyruntimekit.domain.result import ExecutionResult
 from .base import ExecutorDescriptor, ResolvedWorkload
 from .capabilities import INLINE_EXECUTOR_CAPABILITIES
 
-
 type ExecutorClock = Callable[[], datetime]
 
 
