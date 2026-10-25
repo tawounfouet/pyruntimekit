@@ -16,6 +16,7 @@ from .validation import (
     require_text,
 )
 
+
 @dataclass(frozen=True, slots=True)
 class ArtifactRef:
     """Immutable reference to externally stored result material."""
