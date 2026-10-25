@@ -57,9 +57,7 @@ class RunnerOutcome:
         if self.context.run_id != self.final_decision.run.run_id:
             raise RunnerContractError("ExecutionContext must belong to the resulting Run")
         if self.context.attempt != self.started_decision.run.current_attempt:
-            raise RunnerContractError(
-                "ExecutionContext attempt must equal the started Run attempt"
-            )
+            raise RunnerContractError("ExecutionContext attempt must equal the started Run attempt")
         if self.final_decision.final_result is None:
             raise RunnerContractError("Runner final decision requires a final RunResult")
 
@@ -135,9 +133,7 @@ class SimpleRunner:
             raise RunnerContractError("Run and Workload must share the same workload_id")
 
         attempt = (
-            AttemptNumber.first()
-            if run.current_attempt is None
-            else run.current_attempt.next()
+            AttemptNumber.first() if run.current_attempt is None else run.current_attempt.next()
         )
         started = self._kernel.apply(
             run,
@@ -158,17 +154,13 @@ class SimpleRunner:
 
         execution_result = self._executor.execute(workload, context)
         if not isinstance(execution_result, ExecutionResult):
-            raise InvalidExecutorResultError(
-                "configured executor must return an ExecutionResult"
-            )
+            raise InvalidExecutorResultError("configured executor must return an ExecutionResult")
 
         completed_at = self._clock()
         if execution_result.failed:
             failure = execution_result.failure
             if failure is None:
-                raise InvalidExecutorResultError(
-                    "failed ExecutionResult must contain a Failure"
-                )
+                raise InvalidExecutorResultError("failed ExecutionResult must contain a Failure")
             final = self._kernel.apply(
                 started.run,
                 FailRun(
