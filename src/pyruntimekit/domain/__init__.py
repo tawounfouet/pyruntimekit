@@ -26,6 +26,7 @@ from .events import (
     RunSucceeded,
     RunTimedOut,
 )
+from .exceptions import DomainInvariantError, InvalidRunTransitionError
 from .failure import (
     FAILURE_SCHEMA_VERSION,
     Failure,
@@ -34,6 +35,15 @@ from .failure import (
     FailureDetails,
 )
 from .ids import ArtifactId, EventId, FailureId, RunId, WorkloadId
+from .invariants import (
+    allowed_next_states,
+    is_transition_allowed,
+    validate_finished_at_consistency,
+    validate_next_attempt_number,
+    validate_retry_identity,
+    validate_terminal_evidence,
+    validate_transition,
+)
 from .result import ArtifactRef, ExecutionResult, RunResult
 from .run import RUN_SNAPSHOT_SCHEMA_VERSION, Run, RunSnapshot, RunVersion
 from .workload import ResourceHints, Workload, WorkloadDescriptor, WorkloadRef
@@ -47,6 +57,7 @@ __all__ = [
     "AttemptNumber",
     "AttemptOutcome",
     "DomainEvent",
+    "DomainInvariantError",
     "EventId",
     "ExecutionResult",
     "Failure",
@@ -58,6 +69,7 @@ __all__ = [
     "FailureOrigin",
     "FailureScope",
     "FailureSeverity",
+    "InvalidRunTransitionError",
     "IsolationLevel",
     "Priority",
     "ResourceHints",
@@ -80,4 +92,11 @@ __all__ = [
     "WorkloadDescriptor",
     "WorkloadId",
     "WorkloadRef",
+    "allowed_next_states",
+    "is_transition_allowed",
+    "validate_finished_at_consistency",
+    "validate_next_attempt_number",
+    "validate_retry_identity",
+    "validate_terminal_evidence",
+    "validate_transition",
 ]

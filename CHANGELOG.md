@@ -19,3 +19,4 @@ All notable changes to this project will be documented in this file.
 - Normalized durable `Failure` model with normative category/origin/severity/scope taxonomies, symbolic codes and safe serialization.
 - Backend-neutral generic `ExecutionResult` / `RunResult` contracts with immutable `ArtifactRef` and typed `ArtifactId`.
 - Immutable versioned Run domain events with stable event types, UTC timestamps, aggregate versions and serializable payloads.
+- Canonical Run lifecycle transition matrix with pure domain invariant validators and transition errors.
