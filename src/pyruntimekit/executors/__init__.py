@@ -1,4 +1,8 @@
-"""Execution backend contracts and built-in Executors."""
+"""Executor contracts.
+
+Concrete backends stay in their dedicated modules so importing a contract
+module does not eagerly load backend implementations.
+"""
 
 from .base import Executor, ExecutorDescriptor, ResolvedCallable, ResolvedWorkload
 from .capabilities import (
@@ -6,16 +10,13 @@ from .capabilities import (
     ExecutorCapabilities,
     ExecutorCapability,
 )
-from .inline import ExecutorClock, InlineExecutor
 
 __all__ = [
     "Executor",
     "ExecutorCapabilities",
     "ExecutorCapability",
-    "ExecutorClock",
     "ExecutorDescriptor",
     "INLINE_EXECUTOR_CAPABILITIES",
-    "InlineExecutor",
     "ResolvedCallable",
     "ResolvedWorkload",
 ]
