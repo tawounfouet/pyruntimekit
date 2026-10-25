@@ -4,7 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
-No unreleased changes yet.
+### Added
+
+- `RuntimeKernel` command/decision authority for Run creation and canonical lifecycle transitions.
+- Immutable kernel command contracts, pure transition engine and kernel architecture boundary tests.
 
 ## [0.1.0a1] - 2026-10-25
 
