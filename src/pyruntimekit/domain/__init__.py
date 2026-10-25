@@ -4,6 +4,7 @@ This package must remain independent from execution backends, persistence
 providers and higher-level framework integrations.
 """
 
+from .attempt import Attempt, AttemptNumber, AttemptOutcome
 from .enums import IsolationLevel, Priority, RunState
 from .ids import EventId, FailureId, RunId, WorkloadId
 from .run import RUN_SNAPSHOT_SCHEMA_VERSION, Run, RunSnapshot, RunVersion
@@ -11,6 +12,9 @@ from .workload import ResourceHints, Workload, WorkloadDescriptor, WorkloadRef
 
 __all__ = [
     "RUN_SNAPSHOT_SCHEMA_VERSION",
+    "Attempt",
+    "AttemptNumber",
+    "AttemptOutcome",
     "EventId",
     "FailureId",
     "IsolationLevel",
