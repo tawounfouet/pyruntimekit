@@ -16,6 +16,7 @@ from pyruntimekit.domain import (
     FailureCategory,
     FailureOrigin,
     FailureScope,
+    RunId,
     Workload,
     WorkloadDescriptor,
     WorkloadId,
@@ -28,7 +29,6 @@ from pyruntimekit.executors import (
     ResolvedWorkload,
 )
 from pyruntimekit.executors.inline import InlineExecutor
-from pyruntimekit.domain import RunId
 
 NOW = datetime(2026, 10, 25, 23, 55, tzinfo=UTC)
 
