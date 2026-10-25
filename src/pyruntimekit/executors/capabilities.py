@@ -45,7 +45,7 @@ INLINE_EXECUTOR_CAPABILITIES = ExecutorCapabilities(
 
 
 __all__ = [
+    "INLINE_EXECUTOR_CAPABILITIES",
     "ExecutorCapabilities",
     "ExecutorCapability",
-    "INLINE_EXECUTOR_CAPABILITIES",
 ]
