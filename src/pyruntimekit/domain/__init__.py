@@ -10,11 +10,11 @@ from .run import RUN_SNAPSHOT_SCHEMA_VERSION, Run, RunSnapshot, RunVersion
 from .workload import ResourceHints, Workload, WorkloadDescriptor, WorkloadRef
 
 __all__ = [
+    "RUN_SNAPSHOT_SCHEMA_VERSION",
     "EventId",
     "FailureId",
     "IsolationLevel",
     "Priority",
-    "RUN_SNAPSHOT_SCHEMA_VERSION",
     "ResourceHints",
     "Run",
     "RunId",
