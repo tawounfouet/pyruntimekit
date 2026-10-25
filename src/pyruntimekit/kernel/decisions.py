@@ -84,8 +84,7 @@ class KernelDecision:
 
         validate_terminal_evidence(
             self.next_state,
-            result_present=self.next_state is RunState.SUCCEEDED
-            and self.final_result is not None,
+            result_present=self.next_state is RunState.SUCCEEDED and self.final_result is not None,
             failure_present=self.next_state is RunState.FAILED
             and self.final_result is not None
             and self.final_result.failure is not None,
