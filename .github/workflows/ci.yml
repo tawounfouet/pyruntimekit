@@ -59,6 +59,8 @@ jobs:
           python -m venv .smoke-venv
           .smoke-venv/bin/python -m pip install --no-deps dist/*.whl
           .smoke-venv/bin/python - <<'PY'
+          from importlib.metadata import version
+
           import pyruntimekit
           from pyruntimekit.domain import (
               ExecutionResult,
@@ -68,7 +70,8 @@ jobs:
               Workload,
           )
 
-          assert pyruntimekit.__version__ == "0.1.0a1"
+          assert version("pyruntimekit") == "0.1.0a1"
+          assert pyruntimekit.__version__ == version("pyruntimekit")
           assert RunState.CREATED.value == "CREATED"
           assert Run is not None
           assert Workload is not None
