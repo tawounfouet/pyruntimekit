@@ -220,6 +220,40 @@ class Run:
             metadata=self._metadata,
         )
 
+    def _evolve_lifecycle(
+        self,
+        *,
+        state: RunState,
+        updated_at: datetime,
+        current_attempt: AttemptNumber | None,
+    ) -> Run:
+        """Return the next controlled lifecycle representation of this Run.
+
+        Transition permission is intentionally owned by the RuntimeKernel. This
+        internal aggregate primitive only applies already-validated lifecycle
+        facts while preserving identity and advancing RunVersion exactly once.
+        """
+        if not isinstance(state, RunState):
+            raise TypeError("state must be a RunState")
+        if current_attempt is not None and not isinstance(current_attempt, AttemptNumber):
+            raise TypeError("current_attempt must be an AttemptNumber or None")
+
+        timestamp = normalize_aware_datetime(updated_at, field_name="updated_at")
+        if timestamp < self._updated_at:
+            raise ValueError("updated_at must not move backwards")
+
+        evolved = type(self)(
+            run_id=self._run_id,
+            workload_id=self._workload_id,
+            created_at=self._created_at,
+            metadata=self._metadata,
+        )
+        evolved._state = state
+        evolved._version = self._version.next()
+        evolved._updated_at = timestamp
+        evolved._current_attempt = current_attempt
+        return evolved
+
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, Run):
             return NotImplemented
