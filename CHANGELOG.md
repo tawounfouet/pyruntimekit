@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+No unreleased changes yet.
+
+## [0.1.0a1] - 2026-10-25
+
 ### Added
 
 - Initial repository bootstrap for the `0.1.0a1 — Domain Foundations` milestone.
