@@ -11,7 +11,13 @@ from pyruntimekit.domain import (
     RunVersion,
     WorkloadId,
 )
-from pyruntimekit.kernel import CreateRun, KernelDecision, KernelInvariantError, RuntimeKernel
+from pyruntimekit.kernel import (
+    AdmitRun,
+    CreateRun,
+    KernelDecision,
+    KernelInvariantError,
+    RuntimeKernel,
+)
 
 NOW = datetime(2026, 10, 25, 21, 0, tzinfo=UTC)
 
@@ -94,9 +100,7 @@ def test_created_decision_requires_created_state_and_version_zero() -> None:
     created = _created_decision()
     admitted = kernel.apply(
         created.run,
-        __import__("pyruntimekit.kernel", fromlist=["AdmitRun"]).AdmitRun(
-            at=datetime(2026, 10, 25, 21, 0, 1, tzinfo=UTC)
-        ),
+        AdmitRun(at=datetime(2026, 10, 25, 21, 0, 1, tzinfo=UTC)),
     )
 
     with pytest.raises(KernelInvariantError, match="only Run creation"):
