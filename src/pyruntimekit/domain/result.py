@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Generic, Self, TypeVar
+from typing import Self
 
 from .failure import Failure
 from .ids import ArtifactId
@@ -15,10 +15,6 @@ from .validation import (
     plain_json_mapping,
     require_text,
 )
-
-
-T = TypeVar("T")
-
 
 @dataclass(frozen=True, slots=True)
 class ArtifactRef:
@@ -64,7 +60,7 @@ class ArtifactRef:
 
 
 @dataclass(frozen=True, slots=True)
-class ExecutionResult(Generic[T]):
+class ExecutionResult[T]:
     """Technical backend-neutral result returned by an Executor."""
 
     value: T | None = None
@@ -80,9 +76,10 @@ class ExecutionResult(Generic[T]):
             raise TypeError("failure must be a Failure or None")
         if self.failure is not None and self.value is not None:
             raise ValueError("a failed ExecutionResult cannot also contain a value")
-        if self.exit_code is not None:
-            if isinstance(self.exit_code, bool) or not isinstance(self.exit_code, int):
-                raise TypeError("exit_code must be an integer or None")
+        if self.exit_code is not None and (
+            isinstance(self.exit_code, bool) or not isinstance(self.exit_code, int)
+        ):
+            raise TypeError("exit_code must be an integer or None")
         if self.stdout is not None and not isinstance(self.stdout, str):
             raise TypeError("stdout must be a string or None")
         if self.stderr is not None and not isinstance(self.stderr, str):
@@ -153,7 +150,7 @@ class ExecutionResult(Generic[T]):
 
 
 @dataclass(frozen=True, slots=True)
-class RunResult(Generic[T]):
+class RunResult[T]:
     """Logical final result of a Run."""
 
     completed_at: datetime
