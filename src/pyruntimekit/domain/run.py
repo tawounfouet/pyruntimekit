@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from .enums import RunState
 from .ids import RunId, WorkloadId
@@ -140,7 +140,7 @@ class Run:
         return cls(
             run_id=RunId.new() if run_id is None else run_id,
             workload_id=workload_id,
-            created_at=datetime.now(timezone.utc) if created_at is None else created_at,
+            created_at=datetime.now(UTC) if created_at is None else created_at,
             metadata=metadata,
         )
 
