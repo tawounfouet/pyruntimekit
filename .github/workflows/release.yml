@@ -26,9 +26,11 @@ jobs:
 
       - name: Resolve release target
         id: release
+        env:
+          BOOTSTRAP_RELEASE: ${{ startsWith(github.event.head_commit.message, 'chore(release): bootstrap publisher') }}
         shell: bash
         run: |
-          if [[ "${{ github.event.head_commit.message }}" == chore\(release\):\ bootstrap\ publisher* ]]; then
+          if [[ "${BOOTSTRAP_RELEASE}" == "true" ]]; then
             TARGET_SHA="${{ github.event.before }}"
           else
             TARGET_SHA="${{ github.sha }}"
@@ -58,6 +60,8 @@ jobs:
         run: |
           TAG="${{ steps.release.outputs.tag }}"
           TARGET_SHA="${{ steps.release.outputs.target_sha }}"
+
+          git fetch --tags --force origin
 
           if git rev-parse -q --verify "refs/tags/${TAG}" >/dev/null; then
             EXISTING_SHA="$(git rev-list -n 1 "${TAG}")"
