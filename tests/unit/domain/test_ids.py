@@ -80,7 +80,7 @@ def test_identifier_is_immutable() -> None:
     identifier = WorkloadId("550e8400-e29b-41d4-a716-446655440000")
 
     with pytest.raises(FrozenInstanceError):
-        setattr(identifier, "_uuid", UUID("123e4567-e89b-12d3-a456-426614174000"))
+        identifier.__setattr__("_uuid", UUID("123e4567-e89b-12d3-a456-426614174000"))
 
 
 def test_value_is_serialization_friendly_string() -> None:
