@@ -12,11 +12,11 @@ from .capabilities import (
 )
 
 __all__ = [
+    "INLINE_EXECUTOR_CAPABILITIES",
     "Executor",
     "ExecutorCapabilities",
     "ExecutorCapability",
     "ExecutorDescriptor",
-    "INLINE_EXECUTOR_CAPABILITIES",
     "ResolvedCallable",
     "ResolvedWorkload",
 ]
