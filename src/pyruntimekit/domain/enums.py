@@ -26,6 +26,69 @@ class RunState(StrEnum):
         return self in _TERMINAL_RUN_STATES
 
 
+class FailureCategory(StrEnum):
+    """Normative category describing the nature of a Failure."""
+
+    WORKLOAD = "WORKLOAD"
+    VALIDATION = "VALIDATION"
+    TRANSIENT_INFRASTRUCTURE = "TRANSIENT_INFRASTRUCTURE"
+    PERMANENT_INFRASTRUCTURE = "PERMANENT_INFRASTRUCTURE"
+    EXECUTION = "EXECUTION"
+    TIMEOUT = "TIMEOUT"
+    CANCELLATION = "CANCELLATION"
+    WORKER = "WORKER"
+    COORDINATION = "COORDINATION"
+    PERSISTENCE = "PERSISTENCE"
+    SERIALIZATION = "SERIALIZATION"
+    CHECKPOINT = "CHECKPOINT"
+    RECOVERY = "RECOVERY"
+    EFFECT = "EFFECT"
+    SECURITY = "SECURITY"
+    POLICY = "POLICY"
+    INVARIANT = "INVARIANT"
+    CONFIGURATION = "CONFIGURATION"
+    COMPATIBILITY = "COMPATIBILITY"
+    UNKNOWN = "UNKNOWN"
+
+
+class FailureOrigin(StrEnum):
+    """Normative origin identifying where a Failure was observed."""
+
+    WORKLOAD = "WORKLOAD"
+    RUNNER = "RUNNER"
+    EXECUTOR = "EXECUTOR"
+    WORKER = "WORKER"
+    RUNTIME_KERNEL = "RUNTIME_KERNEL"
+    STORE = "STORE"
+    COORDINATION = "COORDINATION"
+    CHECKPOINT = "CHECKPOINT"
+    EFFECT = "EFFECT"
+    POLICY = "POLICY"
+    ADAPTER = "ADAPTER"
+    REMOTE_SYSTEM = "REMOTE_SYSTEM"
+    UNKNOWN = "UNKNOWN"
+
+
+class FailureSeverity(StrEnum):
+    """Normative severity of a Failure."""
+
+    INFO = "INFO"
+    WARNING = "WARNING"
+    ERROR = "ERROR"
+    CRITICAL = "CRITICAL"
+    FATAL = "FATAL"
+
+
+class FailureScope(StrEnum):
+    """Normative scope describing the impact radius of a Failure."""
+
+    ATTEMPT = "ATTEMPT"
+    RUN = "RUN"
+    WORKER = "WORKER"
+    RUNTIME = "RUNTIME"
+    SYSTEM = "SYSTEM"
+
+
 class IsolationLevel(StrEnum):
     """Declarative isolation preference for a Workload."""
 
@@ -57,4 +120,12 @@ _TERMINAL_RUN_STATES = frozenset(
 )
 
 
-__all__ = ["IsolationLevel", "Priority", "RunState"]
+__all__ = [
+    "FailureCategory",
+    "FailureOrigin",
+    "FailureScope",
+    "FailureSeverity",
+    "IsolationLevel",
+    "Priority",
+    "RunState",
+]
