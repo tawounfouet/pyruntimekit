@@ -15,3 +15,4 @@ All notable changes to this project will be documented in this file.
 - Canonical `RunState` enum with explicit stable string values and terminal-state classification.
 - Backend-agnostic Workload model with durable references, descriptors and declarative resource hints.
 - Principal `Run` aggregate with monotone `RunVersion` and immutable schema-versioned `RunSnapshot`.
+- Immutable `Attempt` model with one-based `AttemptNumber` and stable terminal `AttemptOutcome` values.
