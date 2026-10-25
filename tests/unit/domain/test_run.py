@@ -8,6 +8,7 @@ import pytest
 
 from pyruntimekit.domain import (
     RUN_SNAPSHOT_SCHEMA_VERSION,
+    AttemptNumber,
     Run,
     RunId,
     RunSnapshot,
@@ -174,7 +175,7 @@ def test_run_restores_terminal_snapshot_without_running_transition_logic() -> No
     assert run.state is RunState.SUCCEEDED
     assert run.is_terminal
     assert run.version == RunVersion(7)
-    assert run.current_attempt == 2
+    assert run.current_attempt == AttemptNumber(2)
     assert run.snapshot().to_dict() == snapshot.to_dict()
 
 
