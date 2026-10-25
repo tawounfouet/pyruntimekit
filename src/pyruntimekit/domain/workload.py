@@ -3,84 +3,13 @@
 from __future__ import annotations
 
 import json
-import math
-from collections.abc import Iterator, Mapping
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from typing import cast
 
 from .enums import IsolationLevel, Priority
 from .ids import WorkloadId
-
-
-def _require_text(value: str, *, field_name: str) -> str:
-    if not isinstance(value, str):
-        raise TypeError(f"{field_name} must be a string")
-    normalized = value.strip()
-    if not normalized:
-        raise ValueError(f"{field_name} must not be empty")
-    return normalized
-
-
-def _validate_json_value(value: object, *, path: str) -> None:
-    if value is None or isinstance(value, (str, bool, int)):
-        return
-    if isinstance(value, float):
-        if not math.isfinite(value):
-            raise ValueError(f"{path} must not contain NaN or infinity")
-        return
-    if isinstance(value, Mapping):
-        mapping = cast(Mapping[object, object], value)
-        for key, item in mapping.items():
-            if not isinstance(key, str):
-                raise TypeError(f"{path} keys must be strings")
-            if not key.strip():
-                raise ValueError(f"{path} keys must not be empty")
-            _validate_json_value(item, path=f"{path}.{key}")
-        return
-    if isinstance(value, (list, tuple)):
-        sequence = cast(list[object] | tuple[object, ...], value)
-        for index, item in enumerate(sequence):
-            _validate_json_value(item, path=f"{path}[{index}]")
-        return
-    raise TypeError(f"{path} must contain only JSON-compatible values")
-
-
-class _FrozenJsonMapping(Mapping[str, object]):
-    """Defensively immutable mapping backed by canonical JSON."""
-
-    __slots__ = ("_json",)
-
-    def __init__(self, values: Mapping[str, object] | None = None) -> None:
-        source: dict[str, object] = {} if values is None else dict(values)
-        _validate_json_value(source, path="mapping")
-        self._json = json.dumps(
-            source,
-            sort_keys=True,
-            separators=(",", ":"),
-            allow_nan=False,
-        )
-
-    def __getitem__(self, key: str) -> object:
-        return self.to_dict()[key]
-
-    def __iter__(self) -> Iterator[str]:
-        return iter(self.to_dict())
-
-    def __len__(self) -> int:
-        return len(self.to_dict())
-
-    def to_dict(self) -> dict[str, object]:
-        raw: object = json.loads(self._json)
-        return cast(dict[str, object], raw)
-
-    def to_json(self) -> str:
-        return self._json
-
-
-def _plain_mapping(values: Mapping[str, object]) -> dict[str, object]:
-    if isinstance(values, _FrozenJsonMapping):
-        return values.to_dict()
-    return _FrozenJsonMapping(values).to_dict()
+from .validation import freeze_json_mapping, plain_json_mapping, require_text
 
 
 @dataclass(frozen=True, slots=True)
@@ -112,24 +41,28 @@ class WorkloadDescriptor:
     schema_version: int = 1
 
     def __post_init__(self) -> None:
-        object.__setattr__(self, "kind", _require_text(self.kind, field_name="kind"))
+        object.__setattr__(self, "kind", require_text(self.kind, field_name="kind"))
         object.__setattr__(
             self,
             "reference",
-            _require_text(self.reference, field_name="reference"),
+            require_text(self.reference, field_name="reference"),
         )
         if isinstance(self.schema_version, bool) or not isinstance(self.schema_version, int):
             raise TypeError("schema_version must be an integer")
         if self.schema_version <= 0:
             raise ValueError("schema_version must be greater than zero")
-        object.__setattr__(self, "parameters", _FrozenJsonMapping(self.parameters))
+        object.__setattr__(
+            self,
+            "parameters",
+            freeze_json_mapping(self.parameters, field_name="parameters"),
+        )
 
     def to_dict(self) -> dict[str, object]:
         """Return a detached serialization-friendly representation."""
         return {
             "kind": self.kind,
             "reference": self.reference,
-            "parameters": _plain_mapping(self.parameters),
+            "parameters": plain_json_mapping(self.parameters),
             "schema_version": self.schema_version,
         }
 
@@ -212,9 +145,13 @@ class Workload:
     policy_refs: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
-        object.__setattr__(self, "metadata", _FrozenJsonMapping(self.metadata))
+        object.__setattr__(
+            self,
+            "metadata",
+            freeze_json_mapping(self.metadata, field_name="metadata"),
+        )
         normalized_policy_refs = tuple(
-            _require_text(policy_ref, field_name="policy_ref") for policy_ref in self.policy_refs
+            require_text(policy_ref, field_name="policy_ref") for policy_ref in self.policy_refs
         )
         object.__setattr__(self, "policy_refs", normalized_policy_refs)
 
@@ -232,7 +169,7 @@ class Workload:
 
     def metadata_dict(self) -> dict[str, object]:
         """Return detached metadata suitable for serialization."""
-        return _plain_mapping(self.metadata)
+        return plain_json_mapping(self.metadata)
 
 
 __all__ = ["ResourceHints", "Workload", "WorkloadDescriptor", "WorkloadRef"]
