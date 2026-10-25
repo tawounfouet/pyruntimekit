@@ -119,14 +119,7 @@ class AbortRun(_TimestampedCommand):
 
 
 type RunCommand = (
-    AdmitRun
-    | QueueRun
-    | StartRun
-    | CompleteRun
-    | FailRun
-    | CancelRun
-    | TimeoutRun
-    | AbortRun
+    AdmitRun | QueueRun | StartRun | CompleteRun | FailRun | CancelRun | TimeoutRun | AbortRun
 )
 
 type KernelCommand = CreateRun | RunCommand
