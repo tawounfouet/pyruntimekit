@@ -294,28 +294,21 @@ def test_other_terminal_states_only_require_finished_at_in_this_slice(
     )
 
 
-@pytest.mark.parametrize(
-    ("function_name", "args"),
-    [
-        ("allowed_next_states", (cast(Any, "CREATED"),)),
-        ("is_transition_allowed", (cast(Any, "CREATED"), RunState.ADMITTED)),
-        ("is_transition_allowed", (RunState.CREATED, cast(Any, "ADMITTED"))),
-        ("validate_transition", (cast(Any, "CREATED"), RunState.ADMITTED)),
-        ("validate_transition", (RunState.CREATED, cast(Any, "ADMITTED"))),
-    ],
-)
-def test_transition_helpers_reject_non_run_state_values(
-    function_name: str,
-    args: tuple[object, ...],
-) -> None:
-    functions = {
-        "allowed_next_states": allowed_next_states,
-        "is_transition_allowed": is_transition_allowed,
-        "validate_transition": validate_transition,
-    }
+def test_transition_helpers_reject_non_run_state_values() -> None:
+    with pytest.raises(TypeError, match="RunState"):
+        allowed_next_states(cast(Any, "CREATED"))
 
     with pytest.raises(TypeError, match="RunState"):
-        functions[function_name](*cast(Any, args))
+        is_transition_allowed(cast(Any, "CREATED"), RunState.ADMITTED)
+
+    with pytest.raises(TypeError, match="RunState"):
+        is_transition_allowed(RunState.CREATED, cast(Any, "ADMITTED"))
+
+    with pytest.raises(TypeError, match="RunState"):
+        validate_transition(cast(Any, "CREATED"), RunState.ADMITTED)
+
+    with pytest.raises(TypeError, match="RunState"):
+        validate_transition(RunState.CREATED, cast(Any, "ADMITTED"))
 
 
 def test_attempt_progression_rejects_invalid_types() -> None:
