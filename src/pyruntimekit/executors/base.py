@@ -11,7 +11,8 @@ from pyruntimekit.domain.ids import WorkloadId
 from pyruntimekit.domain.result import ExecutionResult
 from pyruntimekit.domain.validation import require_text
 from pyruntimekit.domain.workload import Workload
-from pyruntimekit.executors.capabilities import ExecutorCapabilities
+
+from .capabilities import ExecutorCapabilities
 
 
 type ResolvedCallable = Callable[[ExecutionContext], object]
