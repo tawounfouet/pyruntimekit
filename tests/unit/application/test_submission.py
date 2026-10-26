@@ -114,9 +114,7 @@ def test_submission_service_validates_contract_inputs() -> None:
 
 def test_submission_outcome_rejects_mixed_run_decisions() -> None:
     first_clock = SequenceClock(*(T0 + timedelta(seconds=i) for i in range(5)))
-    second_clock = SequenceClock(
-        *(T0 + timedelta(seconds=10 + i) for i in range(5))
-    )
+    second_clock = SequenceClock(*(T0 + timedelta(seconds=10 + i) for i in range(5)))
     first = _service(first_clock).submit(_resolved())
     second = _service(second_clock).submit(_resolved())
 
