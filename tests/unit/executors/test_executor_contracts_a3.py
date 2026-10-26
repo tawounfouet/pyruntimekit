@@ -9,7 +9,14 @@ from typing import Any, cast
 import pytest
 
 from pyruntimekit.contexts import ExecutionContext
-from pyruntimekit.domain import AttemptNumber, ExecutionResult, RunId, Workload, WorkloadDescriptor, WorkloadId
+from pyruntimekit.domain import (
+    AttemptNumber,
+    ExecutionResult,
+    RunId,
+    Workload,
+    WorkloadDescriptor,
+    WorkloadId,
+)
 from pyruntimekit.executors import (
     INLINE_EXECUTOR_CAPABILITIES,
     AsyncExecutorContract,
