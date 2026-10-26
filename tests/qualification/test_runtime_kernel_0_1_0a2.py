@@ -9,7 +9,7 @@ from typing import Any, cast
 import pytest
 
 from pyruntimekit import RunHandle, Runtime
-from pyruntimekit.application import SimpleRunner, SubmissionService
+from pyruntimekit.application import SimpleRunner, SubmissionOutcome, SubmissionService
 from pyruntimekit.contexts import ExecutionContext
 from pyruntimekit.domain import (
     FailureCategory,
@@ -68,7 +68,7 @@ def _service(clock: SequenceClock) -> SubmissionService:
 
 
 def _assert_decision_chain(
-    outcome: object,
+    outcome: SubmissionOutcome,
     *,
     expected_terminal: RunState,
     expected_terminal_event: str,
