@@ -11,7 +11,7 @@ from pyruntimekit.contexts import ExecutionContext
 from pyruntimekit.domain.attempt import AttemptNumber
 from pyruntimekit.domain.result import ExecutionResult, RunResult
 from pyruntimekit.domain.run import Run
-from pyruntimekit.domain.workload import Workload
+from pyruntimekit.executors.base import Executor, ResolvedWorkload
 from pyruntimekit.kernel import (
     CompleteRun,
     FailRun,
@@ -27,16 +27,6 @@ class RunnerContractError(ValueError):
 
 class InvalidExecutorResultError(RunnerContractError):
     """Raised when a configured executor violates the result contract."""
-
-
-class _ConfiguredExecutor(Protocol):
-    """Temporary structural port until the public Executor contract lands in PR 16."""
-
-    def execute(
-        self,
-        workload: Workload,
-        context: ExecutionContext,
-    ) -> ExecutionResult[object]: ...
 
 
 type RunnerClock = Callable[[], datetime]
@@ -86,7 +76,7 @@ class Runner(Protocol):
     def run(
         self,
         run: Run,
-        workload: Workload,
+        workload: ResolvedWorkload,
         *,
         correlation_id: str,
         trace_id: str | None = None,
@@ -103,7 +93,7 @@ class SimpleRunner:
         self,
         *,
         kernel: RuntimeKernel,
-        executor: _ConfiguredExecutor,
+        executor: Executor,
         clock: RunnerClock,
     ) -> None:
         if not isinstance(kernel, RuntimeKernel):
@@ -118,7 +108,7 @@ class SimpleRunner:
     def run(
         self,
         run: Run,
-        workload: Workload,
+        workload: ResolvedWorkload,
         *,
         correlation_id: str,
         trace_id: str | None = None,
@@ -127,10 +117,10 @@ class SimpleRunner:
         """Progress one QUEUED Run through one execution attempt to terminal state."""
         if not isinstance(run, Run):
             raise TypeError("run must be a Run")
-        if not isinstance(workload, Workload):
-            raise TypeError("workload must be a Workload")
+        if not isinstance(workload, ResolvedWorkload):
+            raise TypeError("workload must be a ResolvedWorkload")
         if run.workload_id != workload.workload_id:
-            raise RunnerContractError("Run and Workload must share the same workload_id")
+            raise RunnerContractError("Run and ResolvedWorkload must share the same workload_id")
 
         attempt = (
             AttemptNumber.first() if run.current_attempt is None else run.current_attempt.next()

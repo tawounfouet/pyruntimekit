@@ -35,7 +35,7 @@ FORBIDDEN_APPLICATION_IMPORT_ROOTS = frozenset(
 
 FORBIDDEN_APPLICATION_PREFIXES = (
     "pyruntimekit.api",
-    "pyruntimekit.executors",
+    "pyruntimekit.executors.inline",
     "pyruntimekit.stores",
     "pyruntimekit.checkpoints",
     "pyruntimekit.effects",
@@ -72,6 +72,14 @@ def test_application_is_importable_without_expanding_root_public_api() -> None:
     assert application.SimpleRunner is not None
     assert not hasattr(pyruntimekit, "SimpleRunner")
     assert not hasattr(pyruntimekit, "Runner")
+
+
+def test_application_depends_on_executor_contract_not_concrete_backend() -> None:
+    runner_path = _application_path() / "runner.py"
+    imported = _imported_modules(runner_path)
+
+    assert "pyruntimekit.executors.base" in imported
+    assert "pyruntimekit.executors.inline" not in imported
 
 
 def test_application_has_no_infrastructure_or_outer_layer_dependencies() -> None:

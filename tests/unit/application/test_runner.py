@@ -1,4 +1,4 @@
-"""Tests for the initial SimpleRunner orchestration contract."""
+"""Tests for the SimpleRunner orchestration contract."""
 
 from __future__ import annotations
 
@@ -32,6 +32,11 @@ from pyruntimekit.domain import (
     WorkloadDescriptor,
     WorkloadId,
 )
+from pyruntimekit.executors import (
+    ExecutorCapabilities,
+    ExecutorDescriptor,
+    ResolvedWorkload,
+)
 from pyruntimekit.kernel import (
     AdmitRun,
     CreateRun,
@@ -40,6 +45,11 @@ from pyruntimekit.kernel import (
 )
 
 T0 = datetime(2026, 10, 25, 22, 45, tzinfo=UTC)
+TEST_DESCRIPTOR = ExecutorDescriptor(
+    name="test.recording",
+    kind="test",
+    capabilities=ExecutorCapabilities(),
+)
 
 
 class SequenceClock:
@@ -53,11 +63,15 @@ class SequenceClock:
 class RecordingExecutor:
     def __init__(self, result: ExecutionResult[object]) -> None:
         self.result = result
-        self.calls: list[tuple[Workload, ExecutionContext]] = []
+        self.calls: list[tuple[ResolvedWorkload, ExecutionContext]] = []
+
+    @property
+    def descriptor(self) -> ExecutorDescriptor:
+        return TEST_DESCRIPTOR
 
     def execute(
         self,
-        workload: Workload,
+        workload: ResolvedWorkload,
         context: ExecutionContext,
     ) -> ExecutionResult[object]:
         self.calls.append((workload, context))
@@ -65,13 +79,29 @@ class RecordingExecutor:
 
 
 class InvalidExecutor:
-    def execute(self, workload: Workload, context: ExecutionContext) -> ExecutionResult[object]:
+    @property
+    def descriptor(self) -> ExecutorDescriptor:
+        return TEST_DESCRIPTOR
+
+    def execute(
+        self,
+        workload: ResolvedWorkload,
+        context: ExecutionContext,
+    ) -> ExecutionResult[object]:
         invalid: object = "not-an-execution-result"
         return cast(ExecutionResult[object], invalid)
 
 
 class ExplodingExecutor:
-    def execute(self, workload: Workload, context: ExecutionContext) -> ExecutionResult[object]:
+    @property
+    def descriptor(self) -> ExecutorDescriptor:
+        return TEST_DESCRIPTOR
+
+    def execute(
+        self,
+        workload: ResolvedWorkload,
+        context: ExecutionContext,
+    ) -> ExecutionResult[object]:
         raise RuntimeError("backend raw error")
 
 
@@ -83,6 +113,13 @@ def _workload() -> Workload:
             reference="tests.example",
         ),
         metadata={"workload": "meta"},
+    )
+
+
+def _resolved(workload: Workload) -> ResolvedWorkload:
+    return ResolvedWorkload(
+        workload=workload,
+        implementation=lambda context: context.correlation_id,
     )
 
 
@@ -115,6 +152,7 @@ def _failure(at: datetime) -> Failure:
 def test_simple_runner_success_path_uses_kernel_and_context() -> None:
     kernel = RuntimeKernel()
     workload = _workload()
+    resolved = _resolved(workload)
     queued = _queued_run(kernel, workload)
     execution = ExecutionResult[object].success(
         value={"answer": 42},
@@ -131,7 +169,7 @@ def test_simple_runner_success_path_uses_kernel_and_context() -> None:
 
     outcome = runner.run(
         queued,
-        workload,
+        resolved,
         correlation_id=" corr-42 ",
         trace_id=" trace-42 ",
         metadata={"tenant": "demo"},
@@ -148,7 +186,7 @@ def test_simple_runner_success_path_uses_kernel_and_context() -> None:
     assert outcome.context.trace_id == "trace-42"
     assert outcome.context.metadata_dict() == {"tenant": "demo"}
 
-    assert executor.calls == [(workload, outcome.context)]
+    assert executor.calls == [(resolved, outcome.context)]
     assert outcome.execution_result is execution
     assert outcome.final_decision.previous_state is RunState.RUNNING
     assert outcome.final_decision.next_state is RunState.SUCCEEDED
@@ -166,6 +204,7 @@ def test_simple_runner_success_path_uses_kernel_and_context() -> None:
 def test_simple_runner_failure_path_requests_fail_run() -> None:
     kernel = RuntimeKernel()
     workload = _workload()
+    resolved = _resolved(workload)
     queued = _queued_run(kernel, workload)
     failure = _failure(T0 + timedelta(seconds=3))
     execution = ExecutionResult[object].from_failure(failure)
@@ -177,11 +216,7 @@ def test_simple_runner_failure_path_requests_fail_run() -> None:
         clock=SequenceClock(T0 + timedelta(seconds=3), complete_at),
     )
 
-    outcome = runner.run(
-        queued,
-        workload,
-        correlation_id="corr",
-    )
+    outcome = runner.run(queued, resolved, correlation_id="corr")
 
     assert outcome.run.state is RunState.FAILED
     assert outcome.result.failed
@@ -193,6 +228,7 @@ def test_simple_runner_failure_path_requests_fail_run() -> None:
 def test_runner_does_not_mutate_input_run() -> None:
     kernel = RuntimeKernel()
     workload = _workload()
+    resolved = _resolved(workload)
     queued = _queued_run(kernel, workload)
     original_snapshot = queued.snapshot()
     runner = SimpleRunner(
@@ -204,7 +240,7 @@ def test_runner_does_not_mutate_input_run() -> None:
         ),
     )
 
-    outcome = runner.run(queued, workload, correlation_id="corr")
+    outcome = runner.run(queued, resolved, correlation_id="corr")
 
     assert queued.snapshot() == original_snapshot
     assert queued.state is RunState.QUEUED
@@ -215,6 +251,7 @@ def test_runner_does_not_mutate_input_run() -> None:
 def test_runner_uses_next_attempt_number_for_retried_run() -> None:
     kernel = RuntimeKernel()
     workload = _workload()
+    resolved = _resolved(workload)
     queued = _queued_run(kernel, workload)
     snapshot = queued.snapshot()
     retry_queued = Run.from_snapshot(
@@ -239,17 +276,17 @@ def test_runner_uses_next_attempt_number_for_retried_run() -> None:
         ),
     )
 
-    outcome = runner.run(retry_queued, workload, correlation_id="corr")
+    outcome = runner.run(retry_queued, resolved, correlation_id="corr")
 
     assert outcome.context.attempt == AttemptNumber(2)
     assert outcome.started_decision.run.current_attempt == AttemptNumber(2)
 
 
-def test_runner_rejects_mismatched_workload_identity_before_execution() -> None:
+def test_runner_rejects_mismatched_resolved_workload_identity_before_execution() -> None:
     kernel = RuntimeKernel()
     workload = _workload()
     queued = _queued_run(kernel, workload)
-    other = _workload()
+    other = _resolved(_workload())
     executor = RecordingExecutor(ExecutionResult[object].success())
     runner = SimpleRunner(
         kernel=kernel,
@@ -266,6 +303,7 @@ def test_runner_rejects_mismatched_workload_identity_before_execution() -> None:
 def test_runner_relies_on_kernel_to_reject_non_queued_run() -> None:
     kernel = RuntimeKernel()
     workload = _workload()
+    resolved = _resolved(workload)
     created = kernel.create(CreateRun(at=T0, workload_id=workload.workload_id)).run
     runner = SimpleRunner(
         kernel=kernel,
@@ -274,12 +312,13 @@ def test_runner_relies_on_kernel_to_reject_non_queued_run() -> None:
     )
 
     with pytest.raises(InvalidRunTransitionError):
-        runner.run(created, workload, correlation_id="corr")
+        runner.run(created, resolved, correlation_id="corr")
 
 
 def test_runner_rejects_invalid_executor_result() -> None:
     kernel = RuntimeKernel()
     workload = _workload()
+    resolved = _resolved(workload)
     queued = _queued_run(kernel, workload)
     runner = SimpleRunner(
         kernel=kernel,
@@ -291,12 +330,13 @@ def test_runner_rejects_invalid_executor_result() -> None:
     )
 
     with pytest.raises(InvalidExecutorResultError, match="ExecutionResult"):
-        runner.run(queued, workload, correlation_id="corr")
+        runner.run(queued, resolved, correlation_id="corr")
 
 
-def test_runner_does_not_normalize_raw_executor_exceptions_yet() -> None:
+def test_runner_does_not_normalize_raw_executor_exceptions() -> None:
     kernel = RuntimeKernel()
     workload = _workload()
+    resolved = _resolved(workload)
     queued = _queued_run(kernel, workload)
     runner = SimpleRunner(
         kernel=kernel,
@@ -305,7 +345,7 @@ def test_runner_does_not_normalize_raw_executor_exceptions_yet() -> None:
     )
 
     with pytest.raises(RuntimeError, match="backend raw error"):
-        runner.run(queued, workload, correlation_id="corr")
+        runner.run(queued, resolved, correlation_id="corr")
 
 
 def test_runner_validates_constructor_contract() -> None:
@@ -327,9 +367,10 @@ def test_runner_validates_constructor_contract() -> None:
         )
 
 
-def test_runner_validates_run_and_workload_types() -> None:
+def test_runner_validates_run_and_resolved_workload_types() -> None:
     kernel = RuntimeKernel()
     workload = _workload()
+    resolved = _resolved(workload)
     executor = RecordingExecutor(ExecutionResult[object].success())
     runner = SimpleRunner(
         kernel=kernel,
@@ -338,16 +379,17 @@ def test_runner_validates_run_and_workload_types() -> None:
     )
 
     with pytest.raises(TypeError, match="run must be a Run"):
-        runner.run(cast(Any, object()), workload, correlation_id="corr")
+        runner.run(cast(Any, object()), resolved, correlation_id="corr")
 
     created = kernel.create(CreateRun(at=T0, workload_id=workload.workload_id)).run
-    with pytest.raises(TypeError, match="workload must be a Workload"):
+    with pytest.raises(TypeError, match="ResolvedWorkload"):
         runner.run(created, cast(Any, object()), correlation_id="corr")
 
 
 def test_runner_outcome_requires_coherent_decisions_and_context() -> None:
     kernel = RuntimeKernel()
     workload = _workload()
+    resolved = _resolved(workload)
     queued = _queued_run(kernel, workload)
     execution = ExecutionResult[object].success()
     runner = SimpleRunner(
@@ -358,9 +400,10 @@ def test_runner_outcome_requires_coherent_decisions_and_context() -> None:
             T0 + timedelta(seconds=4),
         ),
     )
-    valid = runner.run(queued, workload, correlation_id="corr")
+    valid = runner.run(queued, resolved, correlation_id="corr")
 
     other_workload = _workload()
+    other_resolved = _resolved(other_workload)
     other_queued = _queued_run(kernel, other_workload)
     other = SimpleRunner(
         kernel=kernel,
@@ -369,7 +412,7 @@ def test_runner_outcome_requires_coherent_decisions_and_context() -> None:
             T0 + timedelta(seconds=3),
             T0 + timedelta(seconds=4),
         ),
-    ).run(other_queued, other_workload, correlation_id="other")
+    ).run(other_queued, other_resolved, correlation_id="other")
 
     with pytest.raises(RunnerContractError, match="same Run"):
         RunnerOutcome(
@@ -383,6 +426,7 @@ def test_runner_outcome_requires_coherent_decisions_and_context() -> None:
 def test_successful_runner_result_is_logical_run_result() -> None:
     kernel = RuntimeKernel()
     workload = _workload()
+    resolved = _resolved(workload)
     queued = _queued_run(kernel, workload)
     runner = SimpleRunner(
         kernel=kernel,
@@ -393,7 +437,7 @@ def test_successful_runner_result_is_logical_run_result() -> None:
         ),
     )
 
-    result = runner.run(queued, workload, correlation_id="corr").result
+    result = runner.run(queued, resolved, correlation_id="corr").result
 
     assert isinstance(result, RunResult)
     assert result.value == "done"
