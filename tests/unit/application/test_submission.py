@@ -137,9 +137,13 @@ def test_submission_context_is_passed_to_callable() -> None:
             reference="tests.submission:observe",
         ),
     )
+    def implementation(context: ExecutionContext) -> object:
+        observed.append(context)
+        return "ok"
+
     resolved = ResolvedWorkload(
         workload=workload,
-        implementation=lambda context: observed.append(context) or "ok",
+        implementation=implementation,
     )
 
     outcome = _service(clock).submit(resolved, correlation_id="corr")
