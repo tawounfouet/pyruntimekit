@@ -189,7 +189,7 @@ def test_public_runtime_rejects_invalid_submission_input() -> None:
 
 
 def test_multiple_sequential_runs_remain_identity_and_result_isolated() -> None:
-    runtime = Runtime(clock=SequenceClock(*_times(15)))
+    runtime = Runtime(clock=SequenceClock(*_times(16)))
 
     first = runtime.submit(lambda context: "first")
 
