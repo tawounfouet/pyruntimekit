@@ -62,6 +62,7 @@ jobs:
           from importlib.metadata import version
 
           import pyruntimekit
+          from pyruntimekit import Runtime
           from pyruntimekit.domain import (
               ExecutionResult,
               Run,
@@ -77,4 +78,9 @@ jobs:
           assert Workload is not None
           assert ExecutionResult is not None
           assert RunCreated.EVENT_TYPE == "run.created"
+
+          submission = Runtime().submit(lambda context: 42)
+          assert submission.result.succeeded
+          assert submission.result.value == 42
+          assert submission.run.state is RunState.SUCCEEDED
           PY
