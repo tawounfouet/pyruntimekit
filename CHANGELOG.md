@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+- Explicit asynchronous Executor contract and `ResolvedAsyncWorkload` for the `0.1.0a3` concurrency milestone.
+- Executor capability vocabulary for async execution, thread execution, context propagation and bounded capacity.
+
 ## [0.1.0a2] - 2026-10-26
 
 ### Added
