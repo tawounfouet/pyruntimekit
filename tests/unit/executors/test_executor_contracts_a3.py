@@ -165,12 +165,8 @@ def test_inline_executor_does_not_gain_capabilities_by_vocabulary_expansion() ->
 
     assert not INLINE_EXECUTOR_CAPABILITIES.supports(ExecutorCapability.ASYNC_EXECUTION)
     assert not INLINE_EXECUTOR_CAPABILITIES.supports(ExecutorCapability.THREAD_EXECUTION)
-    assert not INLINE_EXECUTOR_CAPABILITIES.supports(
-        ExecutorCapability.CONTEXTVARS_PROPAGATION
-    )
-    assert not INLINE_EXECUTOR_CAPABILITIES.supports(
-        ExecutorCapability.THREAD_CONTEXT_PROPAGATION
-    )
+    assert not INLINE_EXECUTOR_CAPABILITIES.supports(ExecutorCapability.CONTEXTVARS_PROPAGATION)
+    assert not INLINE_EXECUTOR_CAPABILITIES.supports(ExecutorCapability.THREAD_CONTEXT_PROPAGATION)
     assert not INLINE_EXECUTOR_CAPABILITIES.supports(ExecutorCapability.BOUNDED_CAPACITY)
 
 
