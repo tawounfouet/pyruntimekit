@@ -6,7 +6,6 @@ import ast
 import importlib.util
 from pathlib import Path
 
-
 FORBIDDEN_CONCURRENCY_ROOTS = frozenset(
     {
         "asyncio",
