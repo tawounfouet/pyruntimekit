@@ -137,6 +137,7 @@ def test_submission_context_is_passed_to_callable() -> None:
             reference="tests.submission:observe",
         ),
     )
+
     def implementation(context: ExecutionContext) -> object:
         observed.append(context)
         return "ok"
