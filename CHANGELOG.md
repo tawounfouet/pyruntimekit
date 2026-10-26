@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.1.0a2] - 2026-10-26
+
 ### Added
 
 - `RuntimeKernel` command/decision authority for Run creation and canonical lifecycle transitions.
