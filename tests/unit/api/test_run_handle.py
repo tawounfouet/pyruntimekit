@@ -40,7 +40,7 @@ def test_handle_stores_reference_not_live_run() -> None:
     assert handle.run_id == run_id
 
     with pytest.raises(AttributeError):
-        handle.run_id = RunId.new()  # type: ignore[misc]
+        setattr(handle, "run_id", RunId.new())
 
     assert not hasattr(handle, "run")
     assert not hasattr(handle, "submission")
