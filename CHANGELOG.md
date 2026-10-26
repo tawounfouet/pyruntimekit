@@ -13,6 +13,7 @@ All notable changes to this project will be documented in this file.
 - Initial Executor contracts, `ResolvedWorkload`, capability declarations and deterministic in-process `InlineExecutor`.
 - First synchronous public `Runtime.submit()` path with callable adaptation and application submission orchestration.
 - Public `RunHandle` reference with `run_id`, `status()`, `result()` and `wait()` backed by an explicit ephemeral in-memory read registry.
+- `0.1.0a2` transverse qualification suite covering lifecycle, events, public API and package-wide no-persistence/no-concurrency boundaries.
 
 ## [0.1.0a1] - 2026-10-25
 
