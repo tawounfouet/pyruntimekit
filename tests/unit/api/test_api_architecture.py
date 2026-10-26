@@ -47,9 +47,10 @@ def _imports(path: Path) -> set[str]:
     return modules
 
 
-def test_runtime_is_the_only_new_root_public_symbol() -> None:
+def test_runtime_and_run_handle_are_the_public_bootstrap_symbols() -> None:
     assert pyruntimekit.Runtime is not None
-    assert set(pyruntimekit.__all__) == {"Runtime", "__version__"}
+    assert pyruntimekit.RunHandle is not None
+    assert set(pyruntimekit.__all__) == {"RunHandle", "Runtime", "__version__"}
 
 
 def test_api_has_no_hidden_concurrency_or_infrastructure_dependencies() -> None:
