@@ -1,8 +1,8 @@
-"""Stable initial Executor contracts."""
+"""Executor contracts for synchronous and asynchronous local execution."""
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from typing import Protocol
 
@@ -15,14 +15,34 @@ from pyruntimekit.domain.workload import Workload
 from .capabilities import ExecutorCapabilities
 
 type ResolvedCallable = Callable[[ExecutionContext], object]
+type ResolvedAsyncCallable = Callable[[ExecutionContext], Awaitable[object]]
 
 
 @dataclass(frozen=True, slots=True)
 class ResolvedWorkload:
-    """Declarative Workload paired with an already-resolved live implementation."""
+    """Declarative Workload paired with an already-resolved sync implementation."""
 
     workload: Workload
     implementation: ResolvedCallable
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.workload, Workload):
+            raise TypeError("workload must be a Workload")
+        if not callable(self.implementation):
+            raise TypeError("implementation must be callable")
+
+    @property
+    def workload_id(self) -> WorkloadId:
+        """Return the identity of the declarative Workload."""
+        return self.workload.workload_id
+
+
+@dataclass(frozen=True, slots=True)
+class ResolvedAsyncWorkload:
+    """Declarative Workload paired with an already-resolved awaitable implementation."""
+
+    workload: Workload
+    implementation: ResolvedAsyncCallable
 
     def __post_init__(self) -> None:
         if not isinstance(self.workload, Workload):
@@ -52,7 +72,7 @@ class ExecutorDescriptor:
 
 
 class Executor(Protocol):
-    """Minimal synchronous Executor contract for the first executable slice."""
+    """Synchronous Executor contract retained from the 0.1.0a2 slice."""
 
     @property
     def descriptor(self) -> ExecutorDescriptor: ...
@@ -64,9 +84,25 @@ class Executor(Protocol):
     ) -> ExecutionResult[object]: ...
 
 
+class AsyncExecutorContract(Protocol):
+    """Awaitable Executor contract for asynchronous execution backends."""
+
+    @property
+    def descriptor(self) -> ExecutorDescriptor: ...
+
+    async def execute(
+        self,
+        workload: ResolvedAsyncWorkload,
+        context: ExecutionContext,
+    ) -> ExecutionResult[object]: ...
+
+
 __all__ = [
+    "AsyncExecutorContract",
     "Executor",
     "ExecutorDescriptor",
+    "ResolvedAsyncCallable",
+    "ResolvedAsyncWorkload",
     "ResolvedCallable",
     "ResolvedWorkload",
 ]
