@@ -205,8 +205,9 @@ def test_multiple_sequential_runs_remain_identity_and_result_isolated() -> None:
     assert first.result().value == "first"
 
     assert second.status() is RunState.FAILED
-    assert second.result().failure is not None
-    assert second.result().failure.message == "second failed"
+    second_result = second.result()
+    assert second_result.failure is not None
+    assert second_result.failure.message == "second failed"
 
     assert third.status() is RunState.SUCCEEDED
     assert third.result().value == "third"
