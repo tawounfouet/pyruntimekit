@@ -74,7 +74,7 @@ def _tree(path: Path) -> ast.AST:
 
 
 def _imports(path: Path) -> set[str]:
-    modules: set[str] = []
+    modules: set[str] = set()
     for node in ast.walk(_tree(path)):
         if isinstance(node, ast.Import):
             modules.update(alias.name for alias in node.names)
