@@ -120,16 +120,11 @@ def test_a2_has_no_hidden_file_persistence_or_sleep_calls() -> None:
                 continue
 
             if isinstance(node.func, ast.Name) and node.func.id in FILE_PERSISTENCE_CALLS:
-                violations.append(
-                    f"{path.relative_to(_package_path())}: call {node.func.id}()"
-                )
-            elif (
-                isinstance(node.func, ast.Attribute)
-                and node.func.attr in FILE_PERSISTENCE_CALLS | {"sleep"}
-            ):
-                violations.append(
-                    f"{path.relative_to(_package_path())}: call .{node.func.attr}()"
-                )
+                violations.append(f"{path.relative_to(_package_path())}: call {node.func.id}()")
+            elif isinstance(
+                node.func, ast.Attribute
+            ) and node.func.attr in FILE_PERSISTENCE_CALLS | {"sleep"}:
+                violations.append(f"{path.relative_to(_package_path())}: call .{node.func.attr}()")
 
     assert violations == [], "hidden persistence/wait behavior:\n" + "\n".join(violations)
 
