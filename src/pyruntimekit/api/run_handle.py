@@ -20,7 +20,7 @@ class _RunHandleResolver(Protocol):
 class RunHandle[T]:
     """Reference to one execution, not ownership of a live Run."""
 
-    __slots__ = ("_resolver", "run_id")
+    __slots__ = ("_resolver", "_run_id")
 
     def __init__(
         self,
@@ -35,8 +35,13 @@ class RunHandle[T]:
         if not callable(getattr(_resolver, "result", None)):
             raise TypeError("resolver must provide result(run_id)")
 
-        self.run_id = run_id
+        self._run_id = run_id
         self._resolver = _resolver
+
+    @property
+    def run_id(self) -> RunId:
+        """Return the immutable logical Run identity referenced by this handle."""
+        return self._run_id
 
     def status(self) -> RunState:
         """Return the latest Run state visible to this handle."""
