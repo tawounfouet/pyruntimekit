@@ -2,7 +2,7 @@
 
 PyRuntimeKit is an experimental Python runtime framework focused on reliable, explicit and progressively durable execution semantics.
 
-> **Status:** pre-alpha. The current implementation milestone is `0.1.0a1 — Domain Foundations`. APIs may change throughout the `0.x` series.
+> **Status:** pre-alpha. The current release milestone is `0.1.0a2 — Runtime Kernel`. APIs may change throughout the `0.x` series.
 
 ## Why PyRuntimeKit?
 
@@ -16,19 +16,91 @@ PyRuntimeKit is designed around a small set of explicit runtime boundaries:
 
 ## Current release scope
 
-`0.1.0a1 — Domain Foundations` provides the qualified domain foundation for PyRuntimeKit:
+`0.1.0a2 — Runtime Kernel` provides the first executable local vertical slice:
 
-- typed identifiers and immutable value objects;
-- Workload contracts;
-- Run aggregate, version and snapshots;
-- Attempt lifecycle primitives;
-- normalized durable Failure contracts;
-- backend-neutral ExecutionResult / RunResult and ArtifactRef;
-- versioned Run domain events;
-- canonical Run lifecycle transition matrix and pure invariants;
-- architecture tests enforcing an infrastructure-independent domain boundary.
+- `RuntimeKernel` command/decision authority;
+- immutable attempt-scoped `ExecutionContext`;
+- `SimpleRunner` orchestration;
+- Executor contracts and `ResolvedWorkload`;
+- deterministic in-process `InlineExecutor`;
+- public synchronous `Runtime.submit()`;
+- public `RunHandle` with `run_id`, `status()`, `result()` and `wait()`;
+- normalized success/failure execution;
+- package-wide qualification proving no hidden persistence or concurrency assumptions.
 
-The release intentionally does **not** provide RuntimeKernel, executors, persistence, workers, leases, checkpoints, effects, recovery or external framework integrations yet.
+The qualified bootstrap is intentionally:
+
+```text
+same process
+same thread
+synchronous
+in-memory
+non-durable
+```
+
+It does **not** yet provide async/thread executors, durable stores, workers, cancellation, retry/recovery, checkpoints, effects, leases/fencing or distributed execution.
+
+## Quickstart
+
+```python
+from pyruntimekit import Runtime
+from pyruntimekit.domain import RunState
+
+runtime = Runtime()
+
+handle = runtime.submit(
+    lambda context: {
+        "run_id": context.run_id.value,
+        "attempt": context.attempt.value,
+    }
+)
+
+assert handle.status() is RunState.SUCCEEDED
+
+result = handle.result()
+print(result.value)
+```
+
+A submitted callable receives an `ExecutionContext`. In `0.1.0a2`, submission executes synchronously through `InlineExecutor`, so the returned handle already references a terminal Run.
+
+## Execution model
+
+The first public path is:
+
+```text
+Runtime.submit()
+      ↓
+SubmissionService
+      ↓
+RuntimeKernel
+CREATED → ADMITTED → QUEUED
+      ↓
+SimpleRunner
+      ↓
+RuntimeKernel
+RUNNING
+      ↓
+ExecutionContext
+      ↓
+InlineExecutor
+      ↓
+ExecutionResult
+   /        \
+success    failure
+   ↓          ↓
+SUCCEEDED   FAILED
+      ↓
+RunHandle
+```
+
+The central authority rule is:
+
+```text
+RuntimeKernel = lifecycle authority
+Runner        = progression/orchestration
+Executor      = execution mechanism
+RunHandle     = client reference
+```
 
 ## Development setup
 
@@ -46,38 +118,65 @@ Run the quality gate:
 
 ## Current repository layout
 
-    src/
-    └── pyruntimekit/
+```text
+src/
+└── pyruntimekit/
+    ├── __init__.py
+    ├── py.typed
+    ├── api/
+    │   ├── __init__.py
+    │   ├── run_handle.py
+    │   └── runtime.py
+    ├── application/
+    │   ├── __init__.py
+    │   ├── runner.py
+    │   └── submission.py
+    ├── contexts/
+    │   ├── __init__.py
+    │   └── execution.py
+    ├── domain/
+    │   ├── attempt.py
+    │   ├── enums.py
+    │   ├── events.py
+    │   ├── exceptions.py
+    │   ├── failure.py
+    │   ├── ids.py
+    │   ├── invariants.py
+    │   ├── result.py
+    │   ├── run.py
+    │   ├── validation.py
+    │   └── workload.py
+    ├── executors/
+    │   ├── __init__.py
+    │   ├── base.py
+    │   ├── capabilities.py
+    │   └── inline.py
+    └── kernel/
         ├── __init__.py
-        ├── py.typed
-        └── domain/
-            ├── attempt.py
-            ├── enums.py
-            ├── events.py
-            ├── exceptions.py
-            ├── failure.py
-            ├── ids.py
-            ├── invariants.py
-            ├── result.py
-            ├── run.py
-            ├── validation.py
-            └── workload.py
-
-    tests/
-    └── unit/
-        └── domain/
-
-    docs/
-    ├── specs/
-    └── adr/
+        ├── commands.py
+        ├── decisions.py
+        ├── errors.py
+        ├── runtime_kernel.py
+        └── transitions.py
+```
 
 ## Architecture direction
 
-The core dependency direction is intended to evolve as:
+The core dependency direction is:
 
-    api → application → kernel → domain
+```text
+api → application → kernel → domain
+```
 
-The domain package must remain independent from persistence, execution backends and higher-level frameworks.
+Application code may depend on Executor contracts, while concrete executors remain independent from application and Kernel lifecycle semantics.
+
+## Qualification
+
+The detailed release qualification lives at:
+
+`docs/qualification/0.1.0a2-runtime-kernel.md`
+
+The milestone is qualified with 571 tests and a coverage gate above 95%.
 
 ## Contributing
 
