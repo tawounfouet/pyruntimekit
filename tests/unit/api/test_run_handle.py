@@ -38,6 +38,10 @@ def test_handle_stores_reference_not_live_run() -> None:
     handle = RunHandle[object](run_id=run_id, _resolver=resolver)
 
     assert handle.run_id == run_id
+
+    with pytest.raises(AttributeError):
+        handle.run_id = RunId.new()  # type: ignore[misc]
+
     assert not hasattr(handle, "run")
     assert not hasattr(handle, "submission")
     assert not hasattr(handle, "runner_outcome")
