@@ -88,11 +88,22 @@ PROCESS_EXECUTOR_CAPABILITIES = ExecutorCapabilities(
     )
 )
 
+SUBPROCESS_EXECUTOR_CAPABILITIES = ExecutorCapabilities(
+    frozenset(
+        {
+            ExecutorCapability.TRUSTED_ONLY,
+            ExecutorCapability.SUBPROCESS_EXECUTION,
+            ExecutorCapability.PROCESS_ISOLATION,
+        }
+    )
+)
+
 
 __all__ = [
     "ASYNC_EXECUTOR_CAPABILITIES",
     "INLINE_EXECUTOR_CAPABILITIES",
     "PROCESS_EXECUTOR_CAPABILITIES",
+    "SUBPROCESS_EXECUTOR_CAPABILITIES",
     "THREAD_EXECUTOR_CAPABILITIES",
     "ExecutorCapabilities",
     "ExecutorCapability",
