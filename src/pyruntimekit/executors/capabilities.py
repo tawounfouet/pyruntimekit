@@ -85,6 +85,7 @@ PROCESS_EXECUTOR_CAPABILITIES = ExecutorCapabilities(
             ExecutorCapability.PROCESS_EXECUTION,
             ExecutorCapability.PROCESS_ISOLATION,
             ExecutorCapability.SERIALIZED_BOUNDARY,
+            ExecutorCapability.BOUNDED_CAPACITY,
         }
     )
 )
@@ -95,6 +96,7 @@ SUBPROCESS_EXECUTOR_CAPABILITIES = ExecutorCapabilities(
             ExecutorCapability.TRUSTED_ONLY,
             ExecutorCapability.SUBPROCESS_EXECUTION,
             ExecutorCapability.PROCESS_ISOLATION,
+            ExecutorCapability.BOUNDED_CAPACITY,
         }
     )
 )
