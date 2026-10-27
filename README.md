@@ -2,7 +2,7 @@
 
 PyRuntimeKit is an experimental Python runtime framework focused on reliable, explicit and progressively durable execution semantics.
 
-> **Status:** pre-alpha. The current release milestone is `0.1.0a3 — Async & Thread Execution`. APIs may change throughout the `0.x` series.
+> **Status:** pre-alpha. The current release milestone is `0.1.0a4 - Process & Subprocess Execution`. APIs may change throughout the `0.x` series.
 
 ## Why PyRuntimeKit?
 
@@ -16,28 +16,18 @@ PyRuntimeKit is designed around a small set of explicit runtime boundaries:
 
 ## Current release scope
 
-`0.1.0a3 — Async & Thread Execution` extends the qualified Runtime Kernel with three local execution mechanisms:
+`0.1.0a4 - Process & Subprocess Execution` expands the qualified execution
+layer with five local mechanisms:
 
-- deterministic direct `InlineExecutor`;
-- explicit Task-based `AsyncExecutor`;
-- thread-backed `ThreadExecutor`.
+- synchronous `InlineExecutor`;
+- asyncio Task-backed `AsyncExecutor`;
+- thread-pool `ThreadExecutor`;
+- child Python-process `ProcessExecutor`;
+- explicit OS-command `SubprocessExecutor`.
 
-The release provides:
-
-- `RuntimeKernel` command/decision lifecycle authority;
-- immutable attempt-scoped `ExecutionContext`;
-- `SimpleRunner` orchestration;
-- synchronous and asynchronous resolved workload contracts;
-- explicit Executor capability declarations;
-- `InlineExecutor`, `AsyncExecutor` and `ThreadExecutor`;
-- ContextVar propagation and isolation;
-- bounded async concurrency;
-- bounded thread in-flight submission;
-- local backpressure;
-- normalized success/failure execution;
-- truthful async/thread cancellation boundaries;
-- explicit ThreadExecutor pool cleanup;
-- standardized Executor conformance and transverse milestone qualification.
+This release extends the existing RuntimeKernel lifecycle authority and the
+`ExecutionContext` contract with isolated process execution, explicit
+Python-object serialization, bounded admission and observable capacity.
 
 The root public API intentionally remains:
 
@@ -45,9 +35,13 @@ The root public API intentionally remains:
 from pyruntimekit import Runtime, RunHandle
 ```
 
-`Runtime.submit()` remains synchronous and continues to execute through InlineExecutor.
+`Runtime.submit()` remains synchronous and uses `InlineExecutor`.
+Other concrete backends are imported from their dedicated modules. No public
+`ProcessRuntime` or `SubprocessRuntime` is introduced.
 
-The release does **not** yet provide ProcessExecutor, SubprocessExecutor, timeout/deadline policy, durable stores, workers, retry/recovery, checkpoints, leases/fencing or distributed execution.
+The release does **not** claim hard cancellation, timeout/deadline guarantees,
+durable Stores, sandboxing, remote/distributed execution, worker coordination,
+recovery, checkpoints, leases or fencing.
 
 ## Quickstart
 
@@ -74,43 +68,45 @@ A submitted callable receives an `ExecutionContext`. The public Runtime path rem
 
 ## Local Executor model
 
-The qualified execution mechanisms are:
-
 ```text
 InlineExecutor
-  direct
-  same process
-  same thread
-  shared memory
+  direct / same process / same thread / shared memory
 
 AsyncExecutor
-  asyncio Task
-  same process
-  same thread
-  shared memory
-  ContextVar propagation/isolation
-  bounded active concurrency
+  asyncio Task / same process / same thread / shared memory
+  ContextVar propagation/isolation / bounded concurrency
 
 ThreadExecutor
-  ThreadPoolExecutor
-  same process
-  worker thread
-  shared memory
-  ContextVar propagation/isolation
-  bounded in-flight submission
-  explicit pool cleanup
+  ThreadPoolExecutor / worker thread / shared memory
+  ContextVar propagation/isolation / bounded in-flight admission
+
+ProcessExecutor
+  ProcessPoolExecutor / isolated child process
+  explicit stdlib pickle boundary / bounded in-flight admission
+
+SubprocessExecutor
+  create_subprocess_exec / isolated OS command process
+  literal argv / stdout/stderr/exit code / bounded concurrency
 ```
 
-The central authority rule remains:
+The authority rule remains:
 
 ```text
 RuntimeKernel = lifecycle authority
-Runner        = progression/orchestration
+Runner        = application orchestration
 Executor      = execution mechanism
 RunHandle     = client reference
 ```
 
-Concurrent Executors extend execution mechanics only. They do not own Run lifecycle state transitions.
+Concrete process and subprocess backends remain module-level imports:
+
+```python
+from pyruntimekit.executors.process import ProcessExecutor
+from pyruntimekit.executors.subprocess import SubprocessExecutor
+```
+
+Both are **trusted-only** primitives. Process isolation does not mean a
+security sandbox.
 
 ## Context propagation
 
@@ -142,43 +138,56 @@ Concurrent async executions and reused thread workers are qualified against cont
 
 ## Capacity and backpressure
 
-AsyncExecutor uses a bounded semaphore around active execution:
+AsyncExecutor limits concurrently active Tasks with `max_concurrency`.
+ThreadExecutor limits submitted/running pool Futures with `max_in_flight`,
+independently of `max_workers`.
 
-```text
-max_concurrency
-      ↓
-BoundedSemaphore
-      ↓
-Task creation/execution
-```
+ProcessExecutor likewise exposes separate `max_workers` and
+`max_in_flight`. Its capacity slot remains assigned until the actual
+underlying pool Future completes, even if the caller cancels the await.
 
-ThreadExecutor bounds submitted/running backend work separately from its worker count:
+SubprocessExecutor bounds admitted child commands with
+`max_concurrency`. Its capacity slot is retained until normal completion
+or cancellation cleanup finishes.
 
-```text
-max_in_flight
-      ↓
-capacity gate
-      ↓
-ThreadPoolExecutor submission
-```
+These backends expose local `current_load`. Excess work waits before
+entering the respective backend.
 
-Excess work waits before entering the execution backend.
+## Serialization and command boundaries
+
+ProcessExecutor uses Python stdlib `pickle` (`HIGHEST_PROTOCOL`) to
+preflight `ResolvedWorkload + ExecutionContext` in the parent, serialize
+the result in the child and deserialize it in the parent. Failed input
+serialization, failed result serialization and failed deserialization are
+reported separately from ordinary workload exceptions. Lambdas/local
+closures are not guaranteed to be picklable; untrusted pickle input is
+not safe to load.
+
+SubprocessExecutor executes explicit `argv` without invoking a shell.
+It supports optional `cwd` and environment overlays and preserves
+decoded `stdout`, `stderr` and `exit_code`. Non-zero exit codes and
+launch exceptions are distinct normalized failures.
 
 ## Cancellation boundary
 
-The release deliberately avoids claiming impossible cancellation guarantees.
+PyRuntimeKit deliberately does not claim hard termination guarantees.
 
-Async cancellation preserves `asyncio.CancelledError` as control flow and releases local capacity.
+For async Tasks, cancellation preserves `asyncio.CancelledError`.
 
-For thread execution:
+For thread and process work:
 
 ```text
-cancel await
+cancel caller await
 !=
-terminate Python thread
+terminate running thread/child process
 ```
 
-If an await is cancelled while its underlying thread keeps running, the capacity slot remains held until the backend Future completes.
+Their backend capacity remains allocated while the underlying Future
+continues.
+
+For subprocess commands, cancellation best-effort terminates the child
+and waits for cleanup before releasing capacity. `close()` blocks new
+commands but does not automatically terminate already-active ones.
 
 ## Public Runtime execution model
 
@@ -210,7 +219,7 @@ SUCCEEDED   FAILED
 RunHandle
 ```
 
-AsyncExecutor and ThreadExecutor are qualified execution backends, but they are not yet exposed as separate public AsyncRuntime/ThreadRuntime facades.
+AsyncExecutor, ThreadExecutor, ProcessExecutor and SubprocessExecutor are qualified execution backends. None is exposed as a separate public Runtime facade.
 
 ## Development setup
 
@@ -262,6 +271,9 @@ src/
     │   ├── base.py
     │   ├── capabilities.py
     │   ├── inline.py
+    │   ├── process.py
+    │   ├── process_serialization.py
+    │   ├── subprocess.py
     │   └── thread.py
     └── kernel/
         ├── __init__.py
@@ -286,19 +298,19 @@ The Domain remains infrastructure-independent.
 
 ## Qualification
 
-The detailed milestone qualification lives at:
+The a4 milestone qualification report is:
 
-`docs/qualification/0.1.0a3-async-thread-execution.md`
+`docs/releases/v0.1.0a4-qualification.md`
 
-The standardized Executor conformance record lives at:
+The isolated-backend conformance matrix is:
 
-`docs/qualification/0.1.0a3-executor-conformance.md`
+`tests/unit/executors/test_process_subprocess_conformance_a4.py`
 
 The complete milestone gate is qualified with:
 
 ```text
-637 tests
-95.61% total coverage
+705 tests passed
+95.51% total coverage
 Ruff lint passed
 Ruff format passed
 mypy strict passed
@@ -307,11 +319,12 @@ typed wheel passed
 clean-wheel smoke passed
 ```
 
+Earlier a1, a2 and a3 qualification suites remain in the full CI run.
+
 ## Release notes
 
-See:
-
-`docs/releases/0.1.0a3.md`
+See `docs/releases/0.1.0a4.md`. Releases use GitHub prerelease assets
+(wheel and source distribution). PyPI publication is not configured here.
 
 ## Contributing
 
