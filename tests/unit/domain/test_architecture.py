@@ -71,7 +71,7 @@ def _imported_modules(path: Path) -> set[str]:
 
 
 def test_package_and_domain_are_importable() -> None:
-    assert pyruntimekit.__version__ == "0.1.0a2"
+    assert pyruntimekit.__version__ == "0.1.0a3"
     assert domain.RunState.CREATED.value == "CREATED"
 
 

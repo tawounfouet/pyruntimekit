@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.1.0a3] - 2026-10-27
+
 ### Added
 
 - Explicit asynchronous Executor contract and `ResolvedAsyncWorkload` for the `0.1.0a3` concurrency milestone.
