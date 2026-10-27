@@ -111,6 +111,33 @@ def _requires_subprocess_contract(executor: SubprocessExecutorContract) -> None:
     assert executor.descriptor.kind == "subprocess"
 
 
+async def _assert_bounded_backpressure(
+    execute_one: ExecuteOne,
+    current_load: Callable[[], int],
+    close: Callable[[], None],
+) -> None:
+    first = asyncio.create_task(execute_one("first"))
+    second = asyncio.create_task(execute_one("second"))
+
+    try:
+        for _ in range(300):
+            if current_load() == 1:
+                break
+            await asyncio.sleep(0.001)
+
+        assert current_load() == 1
+        assert not second.done()
+
+        first_result, second_result = await asyncio.gather(first, second)
+        await asyncio.sleep(0)
+
+        assert first_result.succeeded
+        assert second_result.succeeded
+        assert current_load() == 0
+    finally:
+        close()
+
+
 @pytest.mark.parametrize("case", CASES, ids=lambda case: case.kind)
 def test_a4_isolated_executor_descriptor_and_capability_conformance(
     case: ConformanceCase,
@@ -310,14 +337,14 @@ def test_a4_isolated_executor_bounded_capacity_applies_backpressure(
 ) -> None:
     async def scenario() -> None:
         if kind == "process":
-            executor = ProcessExecutor(
+            process_executor = ProcessExecutor(
                 max_workers=1,
                 max_in_flight=1,
             )
 
-            async def execute_one(label: str) -> ExecutionResult[object]:
+            async def execute_process(label: str) -> ExecutionResult[object]:
                 workload = _workload("python.callable")
-                return await executor.execute(
+                return await process_executor.execute(
                     ResolvedWorkload(
                         workload=workload,
                         implementation=_process_sleep,
@@ -325,51 +352,43 @@ def test_a4_isolated_executor_bounded_capacity_applies_backpressure(
                     _context(workload, label),
                 )
 
-            close: Callable[[], None] = executor.close
-            current_load = lambda: executor.current_load
-        else:
-            executor = SubprocessExecutor(max_concurrency=1)
+            def process_load() -> int:
+                return process_executor.current_load
 
-            async def execute_one(label: str) -> ExecutionResult[object]:
-                workload = _workload("os.command")
-                return await executor.execute(
-                    ResolvedSubprocessWorkload(
-                        workload=workload,
-                        command=SubprocessCommand(
-                            argv=(
-                                sys.executable,
-                                "-c",
-                                "import sys, time; time.sleep(0.08); print(sys.argv[1])",
-                                label,
-                            )
-                        ),
+            await _assert_bounded_backpressure(
+                execute_process,
+                process_load,
+                process_executor.close,
+            )
+            return
+
+        subprocess_executor = SubprocessExecutor(max_concurrency=1)
+
+        async def execute_subprocess(label: str) -> ExecutionResult[object]:
+            workload = _workload("os.command")
+            return await subprocess_executor.execute(
+                ResolvedSubprocessWorkload(
+                    workload=workload,
+                    command=SubprocessCommand(
+                        argv=(
+                            sys.executable,
+                            "-c",
+                            "import sys, time; time.sleep(0.08); print(sys.argv[1])",
+                            label,
+                        )
                     ),
-                    _context(workload, label),
-                )
+                ),
+                _context(workload, label),
+            )
 
-            close = executor.close
-            current_load = lambda: executor.current_load
+        def subprocess_load() -> int:
+            return subprocess_executor.current_load
 
-        first = asyncio.create_task(execute_one("first"))
-        second = asyncio.create_task(execute_one("second"))
-
-        try:
-            for _ in range(300):
-                if current_load() == 1:
-                    break
-                await asyncio.sleep(0.001)
-
-            assert current_load() == 1
-            assert not second.done()
-
-            first_result, second_result = await asyncio.gather(first, second)
-            await asyncio.sleep(0)
-
-            assert first_result.succeeded
-            assert second_result.succeeded
-            assert current_load() == 0
-        finally:
-            close()
+        await _assert_bounded_backpressure(
+            execute_subprocess,
+            subprocess_load,
+            subprocess_executor.close,
+        )
 
     asyncio.run(scenario())
 
