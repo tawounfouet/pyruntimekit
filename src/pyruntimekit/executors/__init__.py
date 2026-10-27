@@ -14,12 +14,14 @@ from .base import (
     ResolvedWorkload,
 )
 from .capabilities import (
+    ASYNC_EXECUTOR_CAPABILITIES,
     INLINE_EXECUTOR_CAPABILITIES,
     ExecutorCapabilities,
     ExecutorCapability,
 )
 
 __all__ = [
+    "ASYNC_EXECUTOR_CAPABILITIES",
     "INLINE_EXECUTOR_CAPABILITIES",
     "AsyncExecutorContract",
     "Executor",
