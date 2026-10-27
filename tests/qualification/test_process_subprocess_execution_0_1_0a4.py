@@ -147,9 +147,7 @@ def test_a4_process_preserves_exact_context_in_real_child() -> None:
             executor.close()
 
         assert result.succeeded
-        child_pid, label, workload_id, attempt = cast(
-            tuple[int, str, str, int], result.value
-        )
+        child_pid, label, workload_id, attempt = cast(tuple[int, str, str, int], result.value)
         assert child_pid != os.getpid()
         assert label == "a4-child"
         assert workload_id == workload.workload_id.value
@@ -272,9 +270,7 @@ def test_a4_subprocess_nonzero_exit_and_launch_errors_remain_distinct() -> None:
             missing = await executor.execute(
                 ResolvedSubprocessWorkload(
                     workload=workload,
-                    command=SubprocessCommand(
-                        argv=("__missing_pyruntimekit_a4_executable__",)
-                    ),
+                    command=SubprocessCommand(argv=("__missing_pyruntimekit_a4_executable__",)),
                 ),
                 _context(workload),
             )
