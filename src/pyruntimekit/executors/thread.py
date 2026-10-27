@@ -5,8 +5,8 @@ from __future__ import annotations
 import asyncio
 import contextvars
 from collections.abc import Callable
-from contextlib import suppress
 from concurrent.futures import Future, ThreadPoolExecutor
+from contextlib import suppress
 from datetime import UTC, datetime
 
 from pyruntimekit.contexts import ExecutionContext
