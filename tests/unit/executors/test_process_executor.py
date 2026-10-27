@@ -10,6 +10,7 @@ from typing import Any, cast
 
 import pytest
 
+import pyruntimekit.executors.process as process_module
 from pyruntimekit.contexts import ExecutionContext
 from pyruntimekit.domain import (
     AttemptNumber,
@@ -28,7 +29,6 @@ from pyruntimekit.executors import (
     ProcessExecutorContract,
     ResolvedWorkload,
 )
-import pyruntimekit.executors.process as process_module
 from pyruntimekit.executors.process import ProcessExecutor
 
 NOW = datetime(2026, 10, 27, 18, 30, tzinfo=UTC)
