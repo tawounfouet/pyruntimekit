@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import contextvars
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, datetime
@@ -27,11 +28,12 @@ def _utc_now() -> datetime:
     return datetime.now(UTC)
 
 
-def _invoke_workload(
+def _invoke_workload_in_context(
+    ambient_context: contextvars.Context,
     workload: ResolvedWorkload,
     context: ExecutionContext,
 ) -> object:
-    return workload.implementation(context)
+    return ambient_context.run(workload.implementation, context)
 
 
 class ThreadExecutor:
@@ -88,9 +90,11 @@ class ThreadExecutor:
 
         try:
             loop = asyncio.get_running_loop()
+            ambient_context = contextvars.copy_context()
             outcome = await loop.run_in_executor(
                 self._pool,
-                _invoke_workload,
+                _invoke_workload_in_context,
+                ambient_context,
                 workload,
                 context,
             )
