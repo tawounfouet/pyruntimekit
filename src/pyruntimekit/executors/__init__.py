@@ -8,10 +8,14 @@ from .base import (
     AsyncExecutorContract,
     Executor,
     ExecutorDescriptor,
+    ProcessExecutorContract,
     ResolvedAsyncCallable,
     ResolvedAsyncWorkload,
     ResolvedCallable,
+    ResolvedSubprocessWorkload,
     ResolvedWorkload,
+    SubprocessCommand,
+    SubprocessExecutorContract,
     ThreadExecutorContract,
 )
 from .capabilities import (
@@ -31,9 +35,13 @@ __all__ = [
     "ExecutorCapabilities",
     "ExecutorCapability",
     "ExecutorDescriptor",
+    "ProcessExecutorContract",
     "ResolvedAsyncCallable",
     "ResolvedAsyncWorkload",
     "ResolvedCallable",
+    "ResolvedSubprocessWorkload",
     "ResolvedWorkload",
+    "SubprocessCommand",
+    "SubprocessExecutorContract",
     "ThreadExecutorContract",
 ]
