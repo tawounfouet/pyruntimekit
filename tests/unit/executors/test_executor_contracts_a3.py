@@ -141,8 +141,8 @@ def test_resolved_async_workload_validates_runtime_shape() -> None:
         )
 
 
-def test_a3_capability_vocabulary_is_stable() -> None:
-    assert {capability.value for capability in ExecutorCapability} == {
+def test_a3_capability_vocabulary_remains_available() -> None:
+    assert {
         "IN_PROCESS",
         "SHARED_MEMORY",
         "TRUSTED_ONLY",
@@ -151,7 +151,7 @@ def test_a3_capability_vocabulary_is_stable() -> None:
         "CONTEXTVARS_PROPAGATION",
         "THREAD_CONTEXT_PROPAGATION",
         "BOUNDED_CAPACITY",
-    }
+    }.issubset({capability.value for capability in ExecutorCapability})
 
 
 def test_inline_executor_does_not_gain_capabilities_by_vocabulary_expansion() -> None:

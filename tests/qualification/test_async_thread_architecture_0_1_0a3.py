@@ -84,18 +84,34 @@ def test_a3_does_not_introduce_deferred_runtime_packages() -> None:
         assert importlib.util.find_spec(f"pyruntimekit.{name}") is None
 
 
-def test_a3_capabilities_do_not_claim_deferred_execution_semantics() -> None:
+def test_a3_executors_do_not_claim_deferred_execution_semantics() -> None:
+    from pyruntimekit.executors import (
+        ASYNC_EXECUTOR_CAPABILITIES,
+        INLINE_EXECUTOR_CAPABILITIES,
+        THREAD_EXECUTOR_CAPABILITIES,
+    )
+
     deferred = {
-        "TIMEOUT",
-        "DEADLINE",
-        "PROCESS_EXECUTION",
-        "SUBPROCESS_EXECUTION",
-        "REMOTE_EXECUTION",
-        "DURABLE_EXECUTION",
-        "DISTRIBUTED_EXECUTION",
+        capability
+        for name, capability in ExecutorCapability.__members__.items()
+        if name
+        in {
+            "PROCESS_EXECUTION",
+            "SUBPROCESS_EXECUTION",
+            "PROCESS_ISOLATION",
+            "SERIALIZED_BOUNDARY",
+            "REMOTE_EXECUTION",
+            "DURABLE_EXECUTION",
+            "DISTRIBUTED_EXECUTION",
+        }
     }
 
-    assert deferred.isdisjoint(ExecutorCapability.__members__)
+    for capabilities in (
+        INLINE_EXECUTOR_CAPABILITIES,
+        ASYNC_EXECUTOR_CAPABILITIES,
+        THREAD_EXECUTOR_CAPABILITIES,
+    ):
+        assert capabilities.values.isdisjoint(deferred)
 
 
 def test_a3_root_api_does_not_claim_public_async_or_thread_runtime() -> None:

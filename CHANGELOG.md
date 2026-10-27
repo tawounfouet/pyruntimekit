@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+- Process and subprocess Executor contracts for the `0.1.0a4` isolated-execution milestone.
+- Explicit `SubprocessCommand` / `ResolvedSubprocessWorkload` command boundary.
+- Capability vocabulary for process execution, subprocess execution, process isolation and serialized boundaries.
+
 ## [0.1.0a3] - 2026-10-27
 
 ### Added
