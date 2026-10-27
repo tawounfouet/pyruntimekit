@@ -24,6 +24,7 @@ from pyruntimekit.domain import (
 )
 from pyruntimekit.executors import (
     ExecutorCapability,
+    ExecutorDescriptor,
     ResolvedAsyncWorkload,
     ResolvedWorkload,
 )
@@ -165,7 +166,7 @@ async def _execute(
         executor.close()
 
 
-def _descriptor(case: ExecutorCase):
+def _descriptor(case: ExecutorCase) -> ExecutorDescriptor:
     if case.name == "inline":
         return InlineExecutor(clock=lambda: NOW).descriptor
     if case.name == "async":
@@ -245,9 +246,13 @@ def test_executor_conformance_delivers_exact_execution_context(case: ExecutorCas
         context = _context(workload)
         observed: list[ExecutionContext] = []
 
+        def observe(received: ExecutionContext) -> object:
+            observed.append(received)
+            return received.correlation_id
+
         result = await _execute(
             case,
-            lambda received: observed.append(received) or received.correlation_id,
+            observe,
             workload=workload,
             context=context,
         )
