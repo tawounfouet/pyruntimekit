@@ -225,7 +225,7 @@ def test_cancelling_await_does_not_claim_thread_termination() -> None:
     asyncio.run(scenario())
 
 
-def test_thread_executor_does_not_propagate_contextvars_before_pr24() -> None:
+def test_thread_executor_propagates_contextvars_and_isolates_caller() -> None:
     marker: contextvars.ContextVar[str] = contextvars.ContextVar(
         "thread_executor_marker",
         default="worker-default",
@@ -249,12 +249,62 @@ def test_thread_executor_does_not_propagate_contextvars_before_pr24() -> None:
             executor.close()
             marker.reset(token)
 
-        assert result.value == "worker-default"
+        assert result.value == "caller-value"
 
     asyncio.run(scenario())
 
 
-def test_thread_executor_capabilities_are_truthful_for_pr23() -> None:
+def test_thread_pool_reuse_does_not_leak_contextvars_between_executions() -> None:
+    marker: contextvars.ContextVar[str] = contextvars.ContextVar(
+        "thread_executor_reuse_marker",
+        default="worker-default",
+    )
+
+    async def scenario() -> None:
+        executor = ThreadExecutor(max_workers=1, clock=lambda: NOW)
+
+        def implementation(received: ExecutionContext) -> object:
+            before = marker.get()
+            marker.set(f"{before}-inside")
+            return (before, marker.get())
+
+        try:
+            first_workload = _workload()
+            first_token = marker.set("first-caller")
+            try:
+                first = await executor.execute(
+                    ResolvedWorkload(
+                        workload=first_workload,
+                        implementation=implementation,
+                    ),
+                    _context(first_workload),
+                )
+            finally:
+                marker.reset(first_token)
+
+            second_workload = _workload()
+            second_token = marker.set("second-caller")
+            try:
+                second = await executor.execute(
+                    ResolvedWorkload(
+                        workload=second_workload,
+                        implementation=implementation,
+                    ),
+                    _context(second_workload),
+                )
+            finally:
+                marker.reset(second_token)
+
+            assert first.value == ("first-caller", "first-caller-inside")
+            assert second.value == ("second-caller", "second-caller-inside")
+            assert marker.get() == "worker-default"
+        finally:
+            executor.close()
+
+    asyncio.run(scenario())
+
+
+def test_thread_executor_capabilities_are_truthful_for_pr24() -> None:
     executor = ThreadExecutor(max_workers=1, clock=lambda: NOW)
     try:
         descriptor = executor.descriptor
@@ -268,10 +318,11 @@ def test_thread_executor_capabilities_are_truthful_for_pr23() -> None:
                 ExecutorCapability.SHARED_MEMORY,
                 ExecutorCapability.TRUSTED_ONLY,
                 ExecutorCapability.THREAD_EXECUTION,
+                ExecutorCapability.THREAD_CONTEXT_PROPAGATION,
             }
         )
         assert not descriptor.capabilities.supports(ExecutorCapability.ASYNC_EXECUTION)
-        assert not descriptor.capabilities.supports(ExecutorCapability.THREAD_CONTEXT_PROPAGATION)
+        assert descriptor.capabilities.supports(ExecutorCapability.THREAD_CONTEXT_PROPAGATION)
         assert not descriptor.capabilities.supports(ExecutorCapability.BOUNDED_CAPACITY)
     finally:
         executor.close()
