@@ -2,11 +2,15 @@
 
 from __future__ import annotations
 
+import importlib.util
 import inspect
 from datetime import UTC, datetime
 from typing import Any, cast
 
 import pytest
+
+import pyruntimekit
+import pyruntimekit.executors as executors
 
 from pyruntimekit.contexts import ExecutionContext
 from pyruntimekit.domain import (
@@ -266,3 +270,18 @@ def test_process_and_subprocess_capabilities_are_not_granted_implicitly() -> Non
         assert not capabilities.supports(ExecutorCapability.SUBPROCESS_EXECUTION)
         assert not capabilities.supports(ExecutorCapability.PROCESS_ISOLATION)
         assert not capabilities.supports(ExecutorCapability.SERIALIZED_BOUNDARY)
+
+
+def test_a4_contracts_do_not_expand_root_api_or_add_backends_yet() -> None:
+    assert executors.ProcessExecutorContract is ProcessExecutorContract
+    assert executors.SubprocessExecutorContract is SubprocessExecutorContract
+    assert executors.ResolvedSubprocessWorkload is ResolvedSubprocessWorkload
+    assert executors.SubprocessCommand is SubprocessCommand
+
+    assert not hasattr(pyruntimekit, "ProcessExecutor")
+    assert not hasattr(pyruntimekit, "SubprocessExecutor")
+    assert not hasattr(pyruntimekit, "ProcessExecutorContract")
+    assert not hasattr(pyruntimekit, "SubprocessExecutorContract")
+
+    assert importlib.util.find_spec("pyruntimekit.executors.process") is None
+    assert importlib.util.find_spec("pyruntimekit.executors.subprocess") is None
