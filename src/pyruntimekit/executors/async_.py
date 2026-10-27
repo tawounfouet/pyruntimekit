@@ -97,10 +97,7 @@ class AsyncExecutor:
                 awaitable = task_context.run(workload.implementation, context)
                 task = asyncio.create_task(
                     _await_outcome(awaitable),
-                    name=(
-                        f"pyruntimekit:{context.run_id.value}:"
-                        f"attempt-{context.attempt.value}"
-                    ),
+                    name=(f"pyruntimekit:{context.run_id.value}:attempt-{context.attempt.value}"),
                     context=task_context,
                 )
                 outcome = await task
