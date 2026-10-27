@@ -11,6 +11,7 @@ All notable changes to this project will be documented in this file.
 - `AsyncExecutor` with explicit `asyncio.Task` execution, normalized async failures and cancellation-signal preservation.
 - `ThreadExecutor` with owned `ThreadPoolExecutor`, explicit cleanup, thread failure normalization and truthful pre-context/pre-backpressure capabilities.
 - Explicit per-execution `ContextVar` propagation and isolation for AsyncExecutor Tasks and ThreadExecutor pool submissions.
+- Bounded local AsyncExecutor concurrency and ThreadExecutor in-flight submission with observable load and cancellation-safe thread capacity release.
 
 ## [0.1.0a2] - 2026-10-26
 
