@@ -97,6 +97,19 @@ class AsyncExecutorContract(Protocol):
     ) -> ExecutionResult[object]: ...
 
 
+class ThreadExecutorContract(Protocol):
+    """Awaitable contract for offloading synchronous Workloads to threads."""
+
+    @property
+    def descriptor(self) -> ExecutorDescriptor: ...
+
+    async def execute(
+        self,
+        workload: ResolvedWorkload,
+        context: ExecutionContext,
+    ) -> ExecutionResult[object]: ...
+
+
 __all__ = [
     "AsyncExecutorContract",
     "Executor",
@@ -105,4 +118,5 @@ __all__ = [
     "ResolvedAsyncWorkload",
     "ResolvedCallable",
     "ResolvedWorkload",
+    "ThreadExecutorContract",
 ]
