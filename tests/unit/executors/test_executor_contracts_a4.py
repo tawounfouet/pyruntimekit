@@ -25,14 +25,14 @@ from pyruntimekit.executors import (
     ASYNC_EXECUTOR_CAPABILITIES,
     INLINE_EXECUTOR_CAPABILITIES,
     THREAD_EXECUTOR_CAPABILITIES,
+    ExecutorCapabilities,
+    ExecutorCapability,
+    ExecutorDescriptor,
     ProcessExecutorContract,
     ResolvedSubprocessWorkload,
     ResolvedWorkload,
     SubprocessCommand,
     SubprocessExecutorContract,
-    ExecutorCapabilities,
-    ExecutorCapability,
-    ExecutorDescriptor,
 )
 
 NOW = datetime(2026, 10, 27, 18, 0, tzinfo=UTC)
