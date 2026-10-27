@@ -13,6 +13,7 @@ import pytest
 from pyruntimekit.contexts import ExecutionContext
 from pyruntimekit.domain import (
     AttemptNumber,
+    ExecutionResult,
     FailureCategory,
     FailureOrigin,
     FailureScope,
@@ -188,7 +189,11 @@ def test_a3_async_capacity_applies_backpressure_and_releases_slot() -> None:
         second_started = asyncio.Event()
         release_first = asyncio.Event()
 
-        async def submit(label: str, *, block: bool) -> object:
+        async def submit(
+            label: str,
+            *,
+            block: bool,
+        ) -> ExecutionResult[object]:
             workload = _workload(async_kind=True)
 
             async def implementation(context: ExecutionContext) -> object:
