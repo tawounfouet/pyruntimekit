@@ -71,7 +71,7 @@ jobs:
               Workload,
           )
 
-          assert version("pyruntimekit") == "0.1.0a3"
+          assert version("pyruntimekit") == "0.1.0a4"
           assert pyruntimekit.__version__ == version("pyruntimekit")
           assert RunState.CREATED.value == "CREATED"
           assert Run is not None
@@ -85,4 +85,32 @@ jobs:
           assert handle.result().succeeded
           assert handle.result().value == 42
           assert handle.wait() is handle.result()
+
+          from pyruntimekit.executors import (
+              ExecutorCapability,
+              PROCESS_EXECUTOR_CAPABILITIES,
+              SUBPROCESS_EXECUTOR_CAPABILITIES,
+          )
+          from pyruntimekit.executors.process import ProcessExecutor
+          from pyruntimekit.executors.subprocess import SubprocessExecutor
+
+          assert PROCESS_EXECUTOR_CAPABILITIES.supports(
+              ExecutorCapability.SERIALIZED_BOUNDARY
+          )
+          assert SUBPROCESS_EXECUTOR_CAPABILITIES.supports(
+              ExecutorCapability.BOUNDED_CAPACITY
+          )
+          assert not SUBPROCESS_EXECUTOR_CAPABILITIES.supports(
+              ExecutorCapability.SERIALIZED_BOUNDARY
+          )
+
+          process_executor = ProcessExecutor(max_workers=1, max_in_flight=1)
+          try:
+              assert process_executor.descriptor.name == "process.default"
+          finally:
+              process_executor.close()
+
+          subprocess_executor = SubprocessExecutor(max_concurrency=1)
+          assert subprocess_executor.descriptor.name == "subprocess.default"
+          subprocess_executor.close()
           PY

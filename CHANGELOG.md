@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.1.0a4] - 2026-10-27
+
 ### Added
 
 - Process and subprocess Executor contracts for the `0.1.0a4` isolated-execution milestone.

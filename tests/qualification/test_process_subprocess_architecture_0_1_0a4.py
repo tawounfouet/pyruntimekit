@@ -37,7 +37,7 @@ def _imports(path: Path) -> set[str]:
 
 
 def test_a4_root_api_remains_a2_compatible() -> None:
-    assert pyruntimekit.__version__ == "0.1.0a3"
+    assert pyruntimekit.__version__ == "0.1.0a4"
     assert pyruntimekit.__all__ == ["RunHandle", "Runtime", "__version__"]
     for name in (
         "ProcessExecutor",
