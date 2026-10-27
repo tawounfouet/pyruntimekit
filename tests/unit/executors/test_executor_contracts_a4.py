@@ -267,7 +267,7 @@ def test_process_and_subprocess_capabilities_are_not_granted_implicitly() -> Non
         assert not capabilities.supports(ExecutorCapability.SERIALIZED_BOUNDARY)
 
 
-def test_a4_contracts_do_not_expand_root_api_or_add_subprocess_backend_yet() -> None:
+def test_a4_contracts_do_not_expand_root_api() -> None:
     assert executors.ProcessExecutorContract is ProcessExecutorContract
     assert executors.SubprocessExecutorContract is SubprocessExecutorContract
     assert executors.ResolvedSubprocessWorkload is ResolvedSubprocessWorkload
@@ -279,4 +279,4 @@ def test_a4_contracts_do_not_expand_root_api_or_add_subprocess_backend_yet() -> 
     assert not hasattr(pyruntimekit, "SubprocessExecutorContract")
 
     assert importlib.util.find_spec("pyruntimekit.executors.process") is not None
-    assert importlib.util.find_spec("pyruntimekit.executors.subprocess") is None
+    assert importlib.util.find_spec("pyruntimekit.executors.subprocess") is not None
