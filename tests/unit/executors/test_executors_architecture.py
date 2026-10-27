@@ -10,6 +10,7 @@ import pyruntimekit
 import pyruntimekit.executors as executors
 from pyruntimekit.executors.async_ import AsyncExecutor
 from pyruntimekit.executors.inline import InlineExecutor
+from pyruntimekit.executors.process import ProcessExecutor
 from pyruntimekit.executors.thread import ThreadExecutor
 
 FORBIDDEN_EXECUTOR_IMPORT_ROOTS = frozenset(
@@ -34,6 +35,7 @@ FORBIDDEN_EXECUTOR_IMPORT_ROOTS = frozenset(
 
 ALLOWED_CONCURRENCY_IMPORTS_BY_FILE = {
     "async_.py": frozenset({"asyncio"}),
+    "process.py": frozenset({"asyncio", "concurrent"}),
     "thread.py": frozenset({"asyncio", "concurrent"}),
 }
 
@@ -70,12 +72,15 @@ def test_executors_package_is_importable_without_root_api_expansion() -> None:
     assert executors.AsyncExecutorContract is not None
     assert AsyncExecutor is not None
     assert InlineExecutor is not None
+    assert ProcessExecutor is not None
     assert ThreadExecutor is not None
     assert not hasattr(executors, "AsyncExecutor")
     assert not hasattr(executors, "InlineExecutor")
+    assert not hasattr(executors, "ProcessExecutor")
     assert not hasattr(executors, "ThreadExecutor")
     assert not hasattr(pyruntimekit, "AsyncExecutor")
     assert not hasattr(pyruntimekit, "InlineExecutor")
+    assert not hasattr(pyruntimekit, "ProcessExecutor")
     assert not hasattr(pyruntimekit, "ThreadExecutor")
     assert not hasattr(pyruntimekit, "Executor")
 
