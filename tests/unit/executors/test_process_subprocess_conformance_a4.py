@@ -6,9 +6,9 @@ import asyncio
 import os
 import sys
 import time
-from collections.abc import Awaitable, Callable
+from collections.abc import Callable, Coroutine
 from dataclasses import dataclass
-from typing import Literal, cast
+from typing import Any, Literal, cast
 
 import pytest
 
@@ -40,7 +40,7 @@ from pyruntimekit.executors.process import ProcessExecutor
 from pyruntimekit.executors.subprocess import SubprocessExecutor
 
 type BackendKind = Literal["process", "subprocess"]
-type ExecuteOne = Callable[[str], Awaitable[ExecutionResult[object]]]
+type ExecuteOne = Callable[[str], Coroutine[Any, Any, ExecutionResult[object]]]
 
 
 @dataclass(frozen=True, slots=True)
@@ -143,15 +143,15 @@ def test_a4_isolated_executor_descriptor_and_capability_conformance(
     case: ConformanceCase,
 ) -> None:
     if case.kind == "process":
-        executor = ProcessExecutor(max_workers=1, max_in_flight=1)
+        process_executor = ProcessExecutor(max_workers=1, max_in_flight=1)
         try:
-            descriptor = executor.descriptor
+            descriptor = process_executor.descriptor
             capabilities = PROCESS_EXECUTOR_CAPABILITIES
         finally:
-            executor.close()
+            process_executor.close()
     else:
-        executor = SubprocessExecutor(max_concurrency=1)
-        descriptor = executor.descriptor
+        subprocess_executor = SubprocessExecutor(max_concurrency=1)
+        descriptor = subprocess_executor.descriptor
         capabilities = SUBPROCESS_EXECUTOR_CAPABILITIES
 
     assert descriptor.name == case.descriptor_name
@@ -192,10 +192,10 @@ def test_a4_isolated_executors_reject_context_for_another_workload(
         context = _context(other, "mismatch")
 
         if kind == "process":
-            executor = ProcessExecutor(max_workers=1, max_in_flight=1)
+            process_executor = ProcessExecutor(max_workers=1, max_in_flight=1)
             try:
                 with pytest.raises(ValueError, match="share workload_id"):
-                    await executor.execute(
+                    await process_executor.execute(
                         ResolvedWorkload(
                             workload=workload,
                             implementation=_process_identity,
@@ -203,13 +203,13 @@ def test_a4_isolated_executors_reject_context_for_another_workload(
                         context,
                     )
             finally:
-                executor.close()
+                process_executor.close()
             return
 
-        executor = SubprocessExecutor(max_concurrency=1)
+        subprocess_executor = SubprocessExecutor(max_concurrency=1)
         try:
             with pytest.raises(ValueError, match="share workload_id"):
-                await executor.execute(
+                await subprocess_executor.execute(
                     ResolvedSubprocessWorkload(
                         workload=workload,
                         command=SubprocessCommand(argv=(sys.executable, "-c", "print('unused')")),
@@ -217,7 +217,7 @@ def test_a4_isolated_executors_reject_context_for_another_workload(
                     context,
                 )
         finally:
-            executor.close()
+            subprocess_executor.close()
 
     asyncio.run(scenario())
 
@@ -396,11 +396,11 @@ def test_a4_isolated_executor_close_is_idempotent_and_rejects_reuse(
         workload = _workload("python.callable" if kind == "process" else "os.command")
 
         if kind == "process":
-            executor = ProcessExecutor(max_workers=1, max_in_flight=1)
-            executor.close()
-            executor.close()
+            process_executor = ProcessExecutor(max_workers=1, max_in_flight=1)
+            process_executor.close()
+            process_executor.close()
             with pytest.raises(RuntimeError, match="closed"):
-                await executor.execute(
+                await process_executor.execute(
                     ResolvedWorkload(
                         workload=workload,
                         implementation=_process_identity,
@@ -409,11 +409,11 @@ def test_a4_isolated_executor_close_is_idempotent_and_rejects_reuse(
                 )
             return
 
-        executor = SubprocessExecutor(max_concurrency=1)
-        executor.close()
-        executor.close()
+        subprocess_executor = SubprocessExecutor(max_concurrency=1)
+        subprocess_executor.close()
+        subprocess_executor.close()
         with pytest.raises(RuntimeError, match="closed"):
-            await executor.execute(
+            await subprocess_executor.execute(
                 ResolvedSubprocessWorkload(
                     workload=workload,
                     command=SubprocessCommand(argv=(sys.executable, "-c", "print('unused')")),
@@ -443,7 +443,8 @@ def test_a4_process_conformance_includes_explicit_serialization_failures() -> No
         assert result.failed
         assert result.failure is not None
         assert result.failure.code.value == "EXECUTOR.PROCESS.RESULT_SERIALIZATION"
-        assert result.failure.to_dict()["metadata"]["boundary"] == "pickle"
+        metadata = cast(dict[str, object], result.failure.to_dict()["metadata"])
+        assert metadata["boundary"] == "pickle"
 
     asyncio.run(scenario())
 
