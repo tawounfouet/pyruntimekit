@@ -96,6 +96,7 @@ class SubprocessExecutor:
         stdout = _decode_output(stdout_bytes)
         stderr = _decode_output(stderr_bytes)
         exit_code = process.returncode
+        assert exit_code is not None
 
         if exit_code == 0:
             return ExecutionResult[object].success(
