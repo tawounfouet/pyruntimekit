@@ -271,9 +271,7 @@ def test_thread_executor_capabilities_are_truthful_for_pr23() -> None:
             }
         )
         assert not descriptor.capabilities.supports(ExecutorCapability.ASYNC_EXECUTION)
-        assert not descriptor.capabilities.supports(
-            ExecutorCapability.THREAD_CONTEXT_PROPAGATION
-        )
+        assert not descriptor.capabilities.supports(ExecutorCapability.THREAD_CONTEXT_PROPAGATION)
         assert not descriptor.capabilities.supports(ExecutorCapability.BOUNDED_CAPACITY)
     finally:
         executor.close()
