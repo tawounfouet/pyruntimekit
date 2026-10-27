@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import contextvars
 from collections.abc import Awaitable, Callable
 from datetime import UTC, datetime
 
@@ -65,10 +66,12 @@ class AsyncExecutor:
             raise ValueError("ResolvedAsyncWorkload and ExecutionContext must share workload_id")
 
         try:
-            awaitable = workload.implementation(context)
+            task_context = contextvars.copy_context()
+            awaitable = task_context.run(workload.implementation, context)
             task = asyncio.create_task(
                 _await_outcome(awaitable),
                 name=(f"pyruntimekit:{context.run_id.value}:attempt-{context.attempt.value}"),
+                context=task_context,
             )
             outcome = await task
         except Exception as exc:

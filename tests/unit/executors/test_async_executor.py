@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import contextvars
 import os
 import threading
 from datetime import UTC, datetime
@@ -200,7 +201,82 @@ def test_async_executor_stays_in_same_process_and_thread() -> None:
     asyncio.run(scenario())
 
 
-def test_async_executor_capabilities_are_truthful_for_pr22() -> None:
+def test_async_executor_propagates_and_isolates_contextvars() -> None:
+    marker: contextvars.ContextVar[str] = contextvars.ContextVar(
+        "async_executor_marker",
+        default="root-default",
+    )
+
+    async def scenario() -> None:
+        workload = _workload()
+        context = _context(workload)
+        token = marker.set("caller-value")
+
+        async def implementation(received: ExecutionContext) -> object:
+            before = marker.get()
+            marker.set("workload-value")
+            await asyncio.sleep(0)
+            return (before, marker.get())
+
+        try:
+            result = await AsyncExecutor(clock=lambda: NOW).execute(
+                ResolvedAsyncWorkload(
+                    workload=workload,
+                    implementation=implementation,
+                ),
+                context,
+            )
+
+            assert result.value == ("caller-value", "workload-value")
+            assert marker.get() == "caller-value"
+        finally:
+            marker.reset(token)
+
+    asyncio.run(scenario())
+
+
+def test_concurrent_async_executions_isolate_contextvars() -> None:
+    marker: contextvars.ContextVar[str] = contextvars.ContextVar(
+        "async_executor_isolation_marker",
+        default="root-default",
+    )
+
+    async def scenario() -> None:
+        executor = AsyncExecutor(clock=lambda: NOW)
+
+        async def run_one(label: str) -> tuple[str, str]:
+            workload = _workload()
+            context = _context(workload)
+            token = marker.set(label)
+
+            async def implementation(received: ExecutionContext) -> object:
+                before = marker.get()
+                marker.set(f"{label}-inside")
+                await asyncio.sleep(0)
+                return (before, marker.get())
+
+            try:
+                result = await executor.execute(
+                    ResolvedAsyncWorkload(
+                        workload=workload,
+                        implementation=implementation,
+                    ),
+                    context,
+                )
+                return cast(tuple[str, str], result.value)
+            finally:
+                marker.reset(token)
+
+        first, second = await asyncio.gather(run_one("first"), run_one("second"))
+
+        assert first == ("first", "first-inside")
+        assert second == ("second", "second-inside")
+        assert marker.get() == "root-default"
+
+    asyncio.run(scenario())
+
+
+def test_async_executor_capabilities_are_truthful_for_pr24() -> None:
     descriptor = AsyncExecutor(clock=lambda: NOW).descriptor
 
     assert descriptor.name == "async.default"
@@ -212,10 +288,11 @@ def test_async_executor_capabilities_are_truthful_for_pr22() -> None:
             ExecutorCapability.SHARED_MEMORY,
             ExecutorCapability.TRUSTED_ONLY,
             ExecutorCapability.ASYNC_EXECUTION,
+            ExecutorCapability.CONTEXTVARS_PROPAGATION,
         }
     )
     assert not descriptor.capabilities.supports(ExecutorCapability.THREAD_EXECUTION)
-    assert not descriptor.capabilities.supports(ExecutorCapability.CONTEXTVARS_PROPAGATION)
+    assert descriptor.capabilities.supports(ExecutorCapability.CONTEXTVARS_PROPAGATION)
     assert not descriptor.capabilities.supports(ExecutorCapability.BOUNDED_CAPACITY)
 
 
