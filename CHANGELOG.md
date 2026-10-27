@@ -13,6 +13,7 @@ All notable changes to this project will be documented in this file.
 - Explicit per-execution `ContextVar` propagation and isolation for AsyncExecutor Tasks and ThreadExecutor pool submissions.
 - Bounded local AsyncExecutor concurrency and ThreadExecutor in-flight submission with observable load and cancellation-safe thread capacity release.
 - Standardized Executor conformance matrix shared by InlineExecutor, AsyncExecutor and ThreadExecutor.
+- Transverse `0.1.0a3` Async/Thread milestone qualification covering compatibility, context isolation, bounded capacity, backpressure, cancellation truthfulness, cleanup and architecture boundaries.
 
 ## [0.1.0a2] - 2026-10-26
 
