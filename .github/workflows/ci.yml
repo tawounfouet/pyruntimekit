@@ -71,7 +71,7 @@ jobs:
               Workload,
           )
 
-          assert version("pyruntimekit") == "0.1.0a2"
+          assert version("pyruntimekit") == "0.1.0a3"
           assert pyruntimekit.__version__ == version("pyruntimekit")
           assert RunState.CREATED.value == "CREATED"
           assert Run is not None
