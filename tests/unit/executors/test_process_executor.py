@@ -103,14 +103,12 @@ def test_process_executor_executes_in_child_process_with_exact_context() -> None
             executor.close()
 
         assert result.succeeded
-        assert result.value == (
-            cast(tuple[object, ...], result.value)[0],
-            context.correlation_id,
-            context.workload_id.value,
-            context.attempt.value,
-        )
-        child_pid = cast(tuple[int, str, str, int], result.value)[0]
+        observation = cast(tuple[int, str, str, int], result.value)
+        child_pid, correlation_id, workload_id, attempt = observation
         assert child_pid != caller_pid
+        assert correlation_id == context.correlation_id
+        assert workload_id == context.workload_id.value
+        assert attempt == context.attempt.value
 
     asyncio.run(scenario())
 
@@ -134,7 +132,7 @@ def test_process_executor_preserves_existing_execution_result() -> None:
 
         assert result.succeeded
         assert result.value == "process-executor"
-        assert result.metadata.to_dict() == {"source": "process-child"}
+        assert result.metadata_dict() == {"source": "process-child"}
 
     asyncio.run(scenario())
 
