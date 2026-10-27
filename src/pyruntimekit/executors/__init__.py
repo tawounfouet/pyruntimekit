@@ -21,6 +21,7 @@ from .base import (
 from .capabilities import (
     ASYNC_EXECUTOR_CAPABILITIES,
     INLINE_EXECUTOR_CAPABILITIES,
+    PROCESS_EXECUTOR_CAPABILITIES,
     THREAD_EXECUTOR_CAPABILITIES,
     ExecutorCapabilities,
     ExecutorCapability,
@@ -29,6 +30,7 @@ from .capabilities import (
 __all__ = [
     "ASYNC_EXECUTOR_CAPABILITIES",
     "INLINE_EXECUTOR_CAPABILITIES",
+    "PROCESS_EXECUTOR_CAPABILITIES",
     "THREAD_EXECUTOR_CAPABILITIES",
     "AsyncExecutorContract",
     "Executor",
