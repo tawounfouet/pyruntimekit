@@ -84,6 +84,7 @@ PROCESS_EXECUTOR_CAPABILITIES = ExecutorCapabilities(
             ExecutorCapability.TRUSTED_ONLY,
             ExecutorCapability.PROCESS_EXECUTION,
             ExecutorCapability.PROCESS_ISOLATION,
+            ExecutorCapability.SERIALIZED_BOUNDARY,
         }
     )
 )
