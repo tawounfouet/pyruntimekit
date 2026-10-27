@@ -63,8 +63,25 @@ def _package_path() -> Path:
     return Path(next(iter(spec.submodule_search_locations)))
 
 
+POST_A2_CONCURRENCY_FILES = frozenset(
+    {
+        Path("executors/async_.py"),
+        Path("executors/thread.py"),
+    }
+)
+
+
 def _python_files() -> list[Path]:
     return sorted(_package_path().rglob("*.py"))
+
+
+def _a2_concurrency_files() -> list[Path]:
+    package = _package_path()
+    return [
+        path
+        for path in _python_files()
+        if path.relative_to(package) not in POST_A2_CONCURRENCY_FILES
+    ]
 
 
 def _tree(path: Path) -> ast.AST:
@@ -89,10 +106,10 @@ def test_a2_package_contains_only_bootstrap_runtime_layers() -> None:
         assert importlib.util.find_spec(f"pyruntimekit.{name}") is None
 
 
-def test_a2_has_no_hidden_concurrency_backend_imports() -> None:
+def test_a2_surfaces_have_no_hidden_concurrency_backend_imports() -> None:
     violations: list[str] = []
 
-    for path in _python_files():
+    for path in _a2_concurrency_files():
         for module in sorted(_imports(path)):
             if module.split(".", maxsplit=1)[0] in FORBIDDEN_CONCURRENCY_ROOTS:
                 violations.append(f"{path.relative_to(_package_path())}: {module}")
