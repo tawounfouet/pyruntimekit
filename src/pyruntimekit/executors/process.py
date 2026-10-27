@@ -136,7 +136,6 @@ class ProcessExecutor:
             return outcome
         return ExecutionResult[object].success(value=outcome)
 
-
     def _serialization_failure_result(
         self,
         *,
