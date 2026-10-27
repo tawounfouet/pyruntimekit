@@ -59,10 +59,22 @@ ASYNC_EXECUTOR_CAPABILITIES = ExecutorCapabilities(
     )
 )
 
+THREAD_EXECUTOR_CAPABILITIES = ExecutorCapabilities(
+    frozenset(
+        {
+            ExecutorCapability.IN_PROCESS,
+            ExecutorCapability.SHARED_MEMORY,
+            ExecutorCapability.TRUSTED_ONLY,
+            ExecutorCapability.THREAD_EXECUTION,
+        }
+    )
+)
+
 
 __all__ = [
     "ASYNC_EXECUTOR_CAPABILITIES",
     "INLINE_EXECUTOR_CAPABILITIES",
+    "THREAD_EXECUTOR_CAPABILITIES",
     "ExecutorCapabilities",
     "ExecutorCapability",
 ]
