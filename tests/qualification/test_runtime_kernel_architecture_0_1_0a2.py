@@ -66,6 +66,7 @@ def _package_path() -> Path:
 POST_A2_CONCURRENCY_FILES = frozenset(
     {
         Path("executors/async_.py"),
+        Path("executors/process.py"),
         Path("executors/thread.py"),
     }
 )
