@@ -5,7 +5,9 @@ from __future__ import annotations
 import asyncio
 import os
 import pickle
+import time
 from datetime import UTC, datetime
+from pathlib import Path
 from typing import Any, cast
 
 import pytest
@@ -79,6 +81,17 @@ def _raise_value_error(received: ExecutionContext) -> object:
 
 def _return_unpicklable_result(received: ExecutionContext) -> object:
     return lambda: received.correlation_id
+
+
+def _sleep_then_return(received: ExecutionContext) -> object:
+    time.sleep(0.12)
+    return received.correlation_id
+
+
+def _signal_then_sleep(received: ExecutionContext) -> object:
+    Path(received.correlation_id).write_text("started", encoding="utf-8")
+    time.sleep(0.15)
+    return "finished"
 
 
 def test_process_executor_structurally_satisfies_contract() -> None:
@@ -181,7 +194,7 @@ def test_process_executor_normalizes_ordinary_exception() -> None:
     asyncio.run(scenario())
 
 
-def test_process_executor_capabilities_are_truthful_for_pr32() -> None:
+def test_process_executor_capabilities_are_truthful_for_pr33() -> None:
     executor = ProcessExecutor(max_workers=1, clock=lambda: NOW)
     try:
         descriptor = executor.descriptor
@@ -197,12 +210,13 @@ def test_process_executor_capabilities_are_truthful_for_pr32() -> None:
             ExecutorCapability.PROCESS_EXECUTION,
             ExecutorCapability.PROCESS_ISOLATION,
             ExecutorCapability.SERIALIZED_BOUNDARY,
+            ExecutorCapability.BOUNDED_CAPACITY,
         }
     )
     assert not descriptor.capabilities.supports(ExecutorCapability.IN_PROCESS)
     assert not descriptor.capabilities.supports(ExecutorCapability.SHARED_MEMORY)
     assert descriptor.capabilities.supports(ExecutorCapability.SERIALIZED_BOUNDARY)
-    assert not descriptor.capabilities.supports(ExecutorCapability.BOUNDED_CAPACITY)
+    assert descriptor.capabilities.supports(ExecutorCapability.BOUNDED_CAPACITY)
 
 
 def test_process_executor_validates_contract_inputs() -> None:
@@ -234,6 +248,15 @@ def test_process_executor_validates_contract_inputs() -> None:
 
     with pytest.raises(ValueError, match=">= 1"):
         ProcessExecutor(max_workers=0, clock=lambda: NOW)
+
+    with pytest.raises(TypeError, match="max_in_flight"):
+        ProcessExecutor(max_in_flight=cast(Any, True), clock=lambda: NOW)
+
+    with pytest.raises(TypeError, match="max_in_flight"):
+        ProcessExecutor(max_in_flight=cast(Any, "2"), clock=lambda: NOW)
+
+    with pytest.raises(ValueError, match=">= 1"):
+        ProcessExecutor(max_in_flight=0, clock=lambda: NOW)
 
     with pytest.raises(TypeError, match="clock must be callable"):
         ProcessExecutor(clock=cast(Any, object()))
@@ -400,5 +423,125 @@ def test_process_executor_normalizes_parent_result_deserialization_failure(
             "workload_kind": "python.callable",
             "boundary": "pickle",
         }
+
+    asyncio.run(scenario())
+
+
+def test_process_executor_bounds_in_flight_submission_before_pool_queue() -> None:
+    async def scenario() -> None:
+        executor = ProcessExecutor(
+            max_workers=1,
+            max_in_flight=2,
+            clock=lambda: NOW,
+        )
+
+        async def submit_one(label: str) -> ExecutionResult[object]:
+            workload = _workload()
+            context = ExecutionContext(
+                run_id=RunId.new(),
+                workload_id=workload.workload_id,
+                attempt=AttemptNumber.first(),
+                correlation_id=label,
+            )
+            return await executor.execute(
+                ResolvedWorkload(
+                    workload=workload,
+                    implementation=_sleep_then_return,
+                ),
+                context,
+            )
+
+        tasks = [
+            asyncio.create_task(submit_one("first")),
+            asyncio.create_task(submit_one("second")),
+            asyncio.create_task(submit_one("third")),
+        ]
+
+        try:
+            for _ in range(300):
+                if executor.current_load == 2:
+                    break
+                await asyncio.sleep(0.001)
+
+            assert executor.max_in_flight == 2
+            assert executor.current_load == 2
+            assert not tasks[2].done()
+
+            results = await asyncio.gather(*tasks)
+            await asyncio.sleep(0)
+
+            assert [result.value for result in results] == ["first", "second", "third"]
+            assert executor.current_load == 0
+        finally:
+            executor.close()
+
+    asyncio.run(scenario())
+
+
+def test_process_capacity_survives_cancelled_await_until_backend_finishes(
+    tmp_path: Path,
+) -> None:
+    async def scenario() -> None:
+        executor = ProcessExecutor(
+            max_workers=1,
+            max_in_flight=1,
+            clock=lambda: NOW,
+        )
+        signal_path = tmp_path / "process-started"
+
+        first_workload = _workload()
+        first_context = ExecutionContext(
+            run_id=RunId.new(),
+            workload_id=first_workload.workload_id,
+            attempt=AttemptNumber.first(),
+            correlation_id=str(signal_path),
+        )
+        first_task = asyncio.create_task(
+            executor.execute(
+                ResolvedWorkload(
+                    workload=first_workload,
+                    implementation=_signal_then_sleep,
+                ),
+                first_context,
+            )
+        )
+
+        try:
+            for _ in range(500):
+                if signal_path.exists():
+                    break
+                await asyncio.sleep(0.001)
+
+            assert signal_path.exists()
+            assert executor.current_load == 1
+
+            first_task.cancel()
+            with pytest.raises(asyncio.CancelledError):
+                await first_task
+
+            assert executor.current_load == 1
+
+            second_workload = _workload()
+            second_task = asyncio.create_task(
+                executor.execute(
+                    ResolvedWorkload(
+                        workload=second_workload,
+                        implementation=_observe_child,
+                    ),
+                    _context(second_workload),
+                )
+            )
+            await asyncio.sleep(0.02)
+
+            assert not second_task.done()
+            assert executor.current_load == 1
+
+            second_result = await second_task
+            await asyncio.sleep(0)
+
+            assert second_result.succeeded
+            assert executor.current_load == 0
+        finally:
+            executor.close()
 
     asyncio.run(scenario())

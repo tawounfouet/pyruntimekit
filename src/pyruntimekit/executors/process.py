@@ -4,7 +4,8 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import Callable
-from concurrent.futures import ProcessPoolExecutor
+from concurrent.futures import Future, ProcessPoolExecutor
+from contextlib import suppress
 from datetime import UTC, datetime
 
 from pyruntimekit.contexts import ExecutionContext
@@ -44,7 +45,14 @@ def _invoke_workload(
 class ProcessExecutor:
     """Execute synchronous Workloads in an owned child-process pool."""
 
-    __slots__ = ("_clock", "_closed", "_pool")
+    __slots__ = (
+        "_capacity",
+        "_clock",
+        "_closed",
+        "_current_load",
+        "_max_in_flight",
+        "_pool",
+    )
 
     _DESCRIPTOR = ExecutorDescriptor(
         name="process.default",
@@ -56,6 +64,7 @@ class ProcessExecutor:
         self,
         *,
         max_workers: int | None = None,
+        max_in_flight: int = 32,
         clock: ProcessExecutorClock = _utc_now,
     ) -> None:
         if max_workers is not None:
@@ -63,17 +72,34 @@ class ProcessExecutor:
                 raise TypeError("max_workers must be an int or None")
             if max_workers < 1:
                 raise ValueError("max_workers must be >= 1")
+        if isinstance(max_in_flight, bool) or not isinstance(max_in_flight, int):
+            raise TypeError("max_in_flight must be an int")
+        if max_in_flight < 1:
+            raise ValueError("max_in_flight must be >= 1")
         if not callable(clock):
             raise TypeError("clock must be callable")
 
         self._clock = clock
         self._closed = False
+        self._max_in_flight = max_in_flight
+        self._current_load = 0
+        self._capacity = asyncio.BoundedSemaphore(max_in_flight)
         self._pool = ProcessPoolExecutor(max_workers=max_workers)
 
     @property
     def descriptor(self) -> ExecutorDescriptor:
         """Describe the guarantees currently implemented by ProcessExecutor."""
         return self._DESCRIPTOR
+
+    @property
+    def max_in_flight(self) -> int:
+        """Return the maximum number of submitted or running process executions."""
+        return self._max_in_flight
+
+    @property
+    def current_load(self) -> int:
+        """Return the number of backend Futures currently holding capacity."""
+        return self._current_load
 
     async def execute(
         self,
@@ -101,6 +127,12 @@ class ProcessExecutor:
                 workload=workload,
             )
 
+        await self._capacity.acquire()
+        if self._closed:
+            self._capacity.release()
+            raise RuntimeError("ProcessExecutor is closed")
+
+        self._current_load += 1
         loop = asyncio.get_running_loop()
 
         try:
@@ -109,6 +141,15 @@ class ProcessExecutor:
                 workload,
                 context,
             )
+        except Exception as exc:
+            self._release_capacity()
+            return self._failure_result(exc, workload)
+
+        concurrent_future.add_done_callback(
+            lambda future: self._schedule_capacity_release(loop, future)
+        )
+
+        try:
             payload = await asyncio.wrap_future(concurrent_future, loop=loop)
         except ProcessResultSerializationError as exc:
             return self._serialization_failure_result(
@@ -135,6 +176,21 @@ class ProcessExecutor:
         if isinstance(outcome, ExecutionResult):
             return outcome
         return ExecutionResult[object].success(value=outcome)
+
+    def _schedule_capacity_release(
+        self,
+        loop: asyncio.AbstractEventLoop,
+        future: Future[bytes],
+    ) -> None:
+        del future
+        with suppress(RuntimeError):
+            loop.call_soon_threadsafe(self._release_capacity)
+
+    def _release_capacity(self) -> None:
+        if self._current_load < 1:
+            return
+        self._current_load -= 1
+        self._capacity.release()
 
     def _serialization_failure_result(
         self,

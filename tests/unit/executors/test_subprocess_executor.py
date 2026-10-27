@@ -14,6 +14,7 @@ import pytest
 from pyruntimekit.contexts import ExecutionContext
 from pyruntimekit.domain import (
     AttemptNumber,
+    ExecutionResult,
     FailureCategory,
     FailureOrigin,
     FailureScope,
@@ -265,7 +266,7 @@ def test_subprocess_executor_normalizes_launch_exception() -> None:
     asyncio.run(scenario())
 
 
-def test_subprocess_executor_capabilities_are_truthful_for_pr31() -> None:
+def test_subprocess_executor_capabilities_are_truthful_for_pr33() -> None:
     descriptor = SubprocessExecutor(clock=lambda: NOW).descriptor
 
     assert descriptor.name == "subprocess.default"
@@ -276,12 +277,13 @@ def test_subprocess_executor_capabilities_are_truthful_for_pr31() -> None:
             ExecutorCapability.TRUSTED_ONLY,
             ExecutorCapability.SUBPROCESS_EXECUTION,
             ExecutorCapability.PROCESS_ISOLATION,
+            ExecutorCapability.BOUNDED_CAPACITY,
         }
     )
     assert not descriptor.capabilities.supports(ExecutorCapability.IN_PROCESS)
     assert not descriptor.capabilities.supports(ExecutorCapability.SHARED_MEMORY)
     assert not descriptor.capabilities.supports(ExecutorCapability.SERIALIZED_BOUNDARY)
-    assert not descriptor.capabilities.supports(ExecutorCapability.BOUNDED_CAPACITY)
+    assert descriptor.capabilities.supports(ExecutorCapability.BOUNDED_CAPACITY)
 
 
 def test_subprocess_executor_validates_contract_inputs() -> None:
@@ -299,6 +301,15 @@ def test_subprocess_executor_validates_contract_inputs() -> None:
 
     asyncio.run(scenario())
 
+    with pytest.raises(TypeError, match="max_concurrency"):
+        SubprocessExecutor(max_concurrency=cast(Any, True), clock=lambda: NOW)
+
+    with pytest.raises(TypeError, match="max_concurrency"):
+        SubprocessExecutor(max_concurrency=cast(Any, "2"), clock=lambda: NOW)
+
+    with pytest.raises(ValueError, match=">= 1"):
+        SubprocessExecutor(max_concurrency=0, clock=lambda: NOW)
+
     with pytest.raises(TypeError, match="clock must be callable"):
         SubprocessExecutor(clock=cast(Any, object()))
 
@@ -312,6 +323,122 @@ def test_subprocess_executor_rejects_context_for_other_workload() -> None:
             await SubprocessExecutor(clock=lambda: NOW).execute(
                 _resolved(workload, sys.executable, "--version"),
                 _context(other),
+            )
+
+    asyncio.run(scenario())
+
+
+def test_subprocess_executor_bounds_active_commands() -> None:
+    async def scenario() -> None:
+        executor = SubprocessExecutor(
+            max_concurrency=1,
+            clock=lambda: NOW,
+        )
+
+        async def submit_one(label: str) -> ExecutionResult[object]:
+            workload = _workload()
+            return await executor.execute(
+                _resolved(
+                    workload,
+                    sys.executable,
+                    "-c",
+                    "import sys, time; time.sleep(0.08); print(sys.argv[1])",
+                    label,
+                ),
+                _context(workload),
+            )
+
+        first = asyncio.create_task(submit_one("first"))
+        second = asyncio.create_task(submit_one("second"))
+
+        for _ in range(300):
+            if executor.current_load == 1:
+                break
+            await asyncio.sleep(0.001)
+
+        assert executor.max_concurrency == 1
+        assert executor.current_load == 1
+        assert not second.done()
+
+        first_result, second_result = await asyncio.gather(first, second)
+        await asyncio.sleep(0)
+
+        assert first_result.stdout == "first\n"
+        assert second_result.stdout == "second\n"
+        assert executor.current_load == 0
+
+    asyncio.run(scenario())
+
+
+def test_subprocess_cancellation_cleanup_releases_capacity(tmp_path: Path) -> None:
+    async def scenario() -> None:
+        executor = SubprocessExecutor(
+            max_concurrency=1,
+            clock=lambda: NOW,
+        )
+        signal_path = tmp_path / "subprocess-started"
+        workload = _workload()
+        task = asyncio.create_task(
+            executor.execute(
+                _resolved(
+                    workload,
+                    sys.executable,
+                    "-c",
+                    (
+                        "from pathlib import Path; import sys, time; "
+                        "Path(sys.argv[1]).write_text('started'); "
+                        "time.sleep(2)"
+                    ),
+                    str(signal_path),
+                ),
+                _context(workload),
+            )
+        )
+
+        for _ in range(500):
+            if signal_path.exists():
+                break
+            await asyncio.sleep(0.001)
+
+        assert signal_path.exists()
+        assert executor.current_load == 1
+
+        task.cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await task
+
+        assert executor.current_load == 0
+
+        next_workload = _workload()
+        result = await executor.execute(
+            _resolved(
+                next_workload,
+                sys.executable,
+                "-c",
+                "print('after-cancel')",
+            ),
+            _context(next_workload),
+        )
+
+        assert result.succeeded
+        assert result.stdout == "after-cancel\n"
+        assert executor.current_load == 0
+
+    asyncio.run(scenario())
+
+
+def test_subprocess_close_is_idempotent_and_prevents_new_execution() -> None:
+    async def scenario() -> None:
+        executor = SubprocessExecutor(clock=lambda: NOW)
+        workload = _workload()
+
+        executor.close()
+        executor.close()
+
+        with pytest.raises(RuntimeError, match="SubprocessExecutor is closed"):
+            await executor.execute(
+                _resolved(workload, sys.executable, "--version"),
+                _context(workload),
             )
 
     asyncio.run(scenario())
