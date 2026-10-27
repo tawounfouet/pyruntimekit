@@ -14,6 +14,7 @@ All notable changes to this project will be documented in this file.
 - Explicit ProcessExecutor pickle boundary with input preflight, result serialization/deserialization normalization and qualified `SERIALIZED_BOUNDARY` capability.
 - Bounded ProcessExecutor in-flight submission and SubprocessExecutor concurrency with observable load, cancellation-safe slot release and explicit close semantics.
 - Capability-driven conformance matrix for ProcessExecutor and SubprocessExecutor covering shared isolation guarantees and backend-specific transport semantics.
+- Transverse 0.1.0a4 milestone qualification for real process isolation, serialization, OS-command behavior, capacity, cancellation, cleanup, architectural boundaries and prior-release compatibility.
 
 ## [0.1.0a3] - 2026-10-27
 
