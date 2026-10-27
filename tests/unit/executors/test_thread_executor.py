@@ -266,7 +266,7 @@ def test_thread_pool_reuse_does_not_leak_contextvars_between_executions() -> Non
         def implementation(received: ExecutionContext) -> object:
             before = marker.get()
             marker.set(f"{before}-inside")
-            return (before, marker.get())
+            return (threading.get_ident(), before, marker.get())
 
         try:
             first_workload = _workload()
@@ -295,8 +295,24 @@ def test_thread_pool_reuse_does_not_leak_contextvars_between_executions() -> Non
             finally:
                 marker.reset(second_token)
 
-            assert first.value == ("first-caller", "first-caller-inside")
-            assert second.value == ("second-caller", "second-caller-inside")
+            first_thread, first_before, first_after = cast(
+                tuple[int, str, str],
+                first.value,
+            )
+            second_thread, second_before, second_after = cast(
+                tuple[int, str, str],
+                second.value,
+            )
+
+            assert first_thread == second_thread
+            assert (first_before, first_after) == (
+                "first-caller",
+                "first-caller-inside",
+            )
+            assert (second_before, second_after) == (
+                "second-caller",
+                "second-caller-inside",
+            )
             assert marker.get() == "worker-default"
         finally:
             executor.close()
