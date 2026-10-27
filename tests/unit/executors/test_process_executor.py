@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import os
+import pickle
 from datetime import UTC, datetime
 from typing import Any, cast
 
@@ -27,6 +28,7 @@ from pyruntimekit.executors import (
     ProcessExecutorContract,
     ResolvedWorkload,
 )
+import pyruntimekit.executors.process as process_module
 from pyruntimekit.executors.process import ProcessExecutor
 
 NOW = datetime(2026, 10, 27, 18, 30, tzinfo=UTC)
@@ -73,6 +75,10 @@ def _return_existing_result(received: ExecutionContext) -> object:
 
 def _raise_value_error(received: ExecutionContext) -> object:
     raise ValueError(f"process bad input: {received.correlation_id}")
+
+
+def _return_unpicklable_result(received: ExecutionContext) -> object:
+    return lambda: received.correlation_id
 
 
 def test_process_executor_structurally_satisfies_contract() -> None:
@@ -175,7 +181,7 @@ def test_process_executor_normalizes_ordinary_exception() -> None:
     asyncio.run(scenario())
 
 
-def test_process_executor_capabilities_are_truthful_for_pr30() -> None:
+def test_process_executor_capabilities_are_truthful_for_pr32() -> None:
     executor = ProcessExecutor(max_workers=1, clock=lambda: NOW)
     try:
         descriptor = executor.descriptor
@@ -190,11 +196,12 @@ def test_process_executor_capabilities_are_truthful_for_pr30() -> None:
             ExecutorCapability.TRUSTED_ONLY,
             ExecutorCapability.PROCESS_EXECUTION,
             ExecutorCapability.PROCESS_ISOLATION,
+            ExecutorCapability.SERIALIZED_BOUNDARY,
         }
     )
     assert not descriptor.capabilities.supports(ExecutorCapability.IN_PROCESS)
     assert not descriptor.capabilities.supports(ExecutorCapability.SHARED_MEMORY)
-    assert not descriptor.capabilities.supports(ExecutorCapability.SERIALIZED_BOUNDARY)
+    assert descriptor.capabilities.supports(ExecutorCapability.SERIALIZED_BOUNDARY)
     assert not descriptor.capabilities.supports(ExecutorCapability.BOUNDED_CAPACITY)
 
 
@@ -269,5 +276,129 @@ def test_process_executor_close_is_idempotent_and_prevents_reuse() -> None:
                 ),
                 _context(workload),
             )
+
+    asyncio.run(scenario())
+
+
+def test_process_executor_rejects_unserializable_submission_before_execution() -> None:
+    async def scenario() -> None:
+        workload = _workload()
+        executed = False
+
+        def local_implementation(received: ExecutionContext) -> object:
+            nonlocal executed
+            executed = True
+            return received.correlation_id
+
+        executor = ProcessExecutor(max_workers=1, clock=lambda: NOW)
+        try:
+            result = await executor.execute(
+                ResolvedWorkload(
+                    workload=workload,
+                    implementation=local_implementation,
+                ),
+                _context(workload),
+            )
+        finally:
+            executor.close()
+
+        assert not executed
+        assert result.failed
+        assert result.failure is not None
+        failure = result.failure
+        assert failure.code.value == "EXECUTOR.PROCESS.INPUT_SERIALIZATION"
+        assert failure.message == "process submission is not serializable"
+        assert failure.category is FailureCategory.EXECUTION
+        assert failure.origin is FailureOrigin.EXECUTOR
+        assert failure.scope is FailureScope.ATTEMPT
+        assert failure.occurred_at == NOW
+        assert failure.cause is not None
+        assert failure.traceback_ref is None
+        assert failure.to_dict()["metadata"] == {
+            "executor": "process.default",
+            "workload_kind": "python.callable",
+            "boundary": "pickle",
+        }
+
+    asyncio.run(scenario())
+
+
+def test_process_executor_normalizes_unserializable_child_result() -> None:
+    async def scenario() -> None:
+        workload = _workload()
+        executor = ProcessExecutor(max_workers=1, clock=lambda: NOW)
+
+        try:
+            result = await executor.execute(
+                ResolvedWorkload(
+                    workload=workload,
+                    implementation=_return_unpicklable_result,
+                ),
+                _context(workload),
+            )
+        finally:
+            executor.close()
+
+        assert result.failed
+        assert result.failure is not None
+        failure = result.failure
+        assert failure.code.value == "EXECUTOR.PROCESS.RESULT_SERIALIZATION"
+        assert failure.message == "process result is not serializable"
+        assert failure.category is FailureCategory.EXECUTION
+        assert failure.origin is FailureOrigin.EXECUTOR
+        assert failure.scope is FailureScope.ATTEMPT
+        assert failure.occurred_at == NOW
+        assert failure.cause is not None
+        assert failure.traceback_ref is None
+        assert failure.to_dict()["metadata"] == {
+            "executor": "process.default",
+            "workload_kind": "python.callable",
+            "boundary": "pickle",
+        }
+
+    asyncio.run(scenario())
+
+
+def test_process_executor_normalizes_parent_result_deserialization_failure(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    async def scenario() -> None:
+        workload = _workload()
+        executor = ProcessExecutor(max_workers=1, clock=lambda: NOW)
+
+        def fail_deserialization(payload: bytes) -> object:
+            del payload
+            raise pickle.UnpicklingError("corrupt result payload")
+
+        monkeypatch.setattr(
+            process_module,
+            "deserialize_process_result",
+            fail_deserialization,
+        )
+
+        try:
+            result = await executor.execute(
+                ResolvedWorkload(
+                    workload=workload,
+                    implementation=_observe_child,
+                ),
+                _context(workload),
+            )
+        finally:
+            executor.close()
+
+        assert result.failed
+        assert result.failure is not None
+        failure = result.failure
+        assert failure.code.value == "EXECUTOR.PROCESS.RESULT_DESERIALIZATION"
+        assert failure.message == "process result could not be deserialized"
+        assert failure.cause is not None
+        assert failure.cause.type_name == "UnpicklingError"
+        assert failure.cause.message == "corrupt result payload"
+        assert failure.to_dict()["metadata"] == {
+            "executor": "process.default",
+            "workload_kind": "python.callable",
+            "boundary": "pickle",
+        }
 
     asyncio.run(scenario())
