@@ -12,6 +12,7 @@ All notable changes to this project will be documented in this file.
 - Initial `ProcessExecutor` backed by an owned `ProcessPoolExecutor`, with child-process isolation, result/failure normalization and explicit cleanup.
 - Initial `SubprocessExecutor` with shell-free argv execution, cwd/env control, stdout/stderr capture, exit-code preservation and normalized non-zero exits.
 - Explicit ProcessExecutor pickle boundary with input preflight, result serialization/deserialization normalization and qualified `SERIALIZED_BOUNDARY` capability.
+- Bounded ProcessExecutor in-flight submission and SubprocessExecutor concurrency with observable load, cancellation-safe slot release and explicit close semantics.
 
 ## [0.1.0a3] - 2026-10-27
 
