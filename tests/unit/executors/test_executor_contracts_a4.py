@@ -88,9 +88,7 @@ class FakeProcessExecutor:
         workload: ResolvedWorkload,
         context: ExecutionContext,
     ) -> ExecutionResult[object]:
-        return ExecutionResult[object].success(
-            value=(workload.workload_id, context.workload_id)
-        )
+        return ExecutionResult[object].success(value=(workload.workload_id, context.workload_id))
 
 
 class FakeSubprocessExecutor:
@@ -116,9 +114,7 @@ class FakeSubprocessExecutor:
         workload: ResolvedSubprocessWorkload,
         context: ExecutionContext,
     ) -> ExecutionResult[object]:
-        return ExecutionResult[object].success(
-            value=(workload.command.argv, context.workload_id)
-        )
+        return ExecutionResult[object].success(value=(workload.command.argv, context.workload_id))
 
 
 def test_process_executor_contract_is_awaitable_and_structural() -> None:
