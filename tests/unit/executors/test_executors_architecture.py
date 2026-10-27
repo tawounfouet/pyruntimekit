@@ -8,6 +8,7 @@ from pathlib import Path
 
 import pyruntimekit
 import pyruntimekit.executors as executors
+from pyruntimekit.executors.async_ import AsyncExecutor
 from pyruntimekit.executors.inline import InlineExecutor
 
 FORBIDDEN_EXECUTOR_IMPORT_ROOTS = frozenset(
@@ -16,6 +17,7 @@ FORBIDDEN_EXECUTOR_IMPORT_ROOTS = frozenset(
         "threading",
         "multiprocessing",
         "subprocess",
+        "concurrent",
         "sqlalchemy",
         "asyncpg",
         "psycopg",
@@ -28,6 +30,10 @@ FORBIDDEN_EXECUTOR_IMPORT_ROOTS = frozenset(
         "pyschedulekit",
     }
 )
+
+ALLOWED_CONCURRENCY_IMPORTS_BY_FILE = {
+    "async_.py": frozenset({"asyncio"}),
+}
 
 FORBIDDEN_EXECUTOR_PREFIXES = (
     "pyruntimekit.api",
@@ -59,20 +65,34 @@ def _imports(path: Path) -> set[str]:
 
 def test_executors_package_is_importable_without_root_api_expansion() -> None:
     assert executors.Executor is not None
+    assert executors.AsyncExecutorContract is not None
+    assert AsyncExecutor is not None
     assert InlineExecutor is not None
+    assert not hasattr(executors, "AsyncExecutor")
     assert not hasattr(executors, "InlineExecutor")
+    assert not hasattr(pyruntimekit, "AsyncExecutor")
     assert not hasattr(pyruntimekit, "InlineExecutor")
     assert not hasattr(pyruntimekit, "Executor")
 
 
-def test_executors_have_no_hidden_concurrency_or_outer_dependencies() -> None:
+def test_executor_concurrency_imports_are_backend_scoped() -> None:
     violations: list[str] = []
+
     for path in sorted(_executors_path().glob("*.py")):
+        allowed = ALLOWED_CONCURRENCY_IMPORTS_BY_FILE.get(path.name, frozenset())
         for module in sorted(_imports(path)):
             root = module.split(".", maxsplit=1)[0]
-            if root in FORBIDDEN_EXECUTOR_IMPORT_ROOTS:
+            if root in FORBIDDEN_EXECUTOR_IMPORT_ROOTS and root not in allowed:
                 violations.append(f"{path.name}: {module}")
-                continue
+
+    assert violations == [], "forbidden executor dependencies:\n" + "\n".join(violations)
+
+
+def test_executors_have_no_outer_layer_dependencies() -> None:
+    violations: list[str] = []
+
+    for path in sorted(_executors_path().glob("*.py")):
+        for module in sorted(_imports(path)):
             if module.startswith(FORBIDDEN_EXECUTOR_PREFIXES):
                 violations.append(f"{path.name}: {module}")
 
