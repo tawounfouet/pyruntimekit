@@ -416,7 +416,9 @@ def test_a4_isolated_executor_close_is_idempotent_and_rejects_reuse(
             await executor.execute(
                 ResolvedSubprocessWorkload(
                     workload=workload,
-                    command=SubprocessCommand(argv=(sys.executable, "-c", "print('unused'"))),
+                    command=SubprocessCommand(
+                        argv=(sys.executable, "-c", "print('unused')")
+                    ),
                 ),
                 _context(workload, "closed"),
             )
