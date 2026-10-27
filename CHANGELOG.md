@@ -12,6 +12,7 @@ All notable changes to this project will be documented in this file.
 - `ThreadExecutor` with owned `ThreadPoolExecutor`, explicit cleanup, thread failure normalization and truthful pre-context/pre-backpressure capabilities.
 - Explicit per-execution `ContextVar` propagation and isolation for AsyncExecutor Tasks and ThreadExecutor pool submissions.
 - Bounded local AsyncExecutor concurrency and ThreadExecutor in-flight submission with observable load and cancellation-safe thread capacity release.
+- Standardized Executor conformance matrix shared by InlineExecutor, AsyncExecutor and ThreadExecutor.
 
 ## [0.1.0a2] - 2026-10-26
 
