@@ -135,6 +135,7 @@ async def _execute(
         )
 
     if case.name == "async":
+
         async def implementation(received: ExecutionContext) -> object:
             return behavior(received)
 
