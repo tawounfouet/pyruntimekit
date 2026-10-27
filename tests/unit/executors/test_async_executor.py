@@ -289,11 +289,12 @@ def test_async_executor_capabilities_are_truthful_for_pr24() -> None:
             ExecutorCapability.TRUSTED_ONLY,
             ExecutorCapability.ASYNC_EXECUTION,
             ExecutorCapability.CONTEXTVARS_PROPAGATION,
+            ExecutorCapability.BOUNDED_CAPACITY,
         }
     )
     assert not descriptor.capabilities.supports(ExecutorCapability.THREAD_EXECUTION)
     assert descriptor.capabilities.supports(ExecutorCapability.CONTEXTVARS_PROPAGATION)
-    assert not descriptor.capabilities.supports(ExecutorCapability.BOUNDED_CAPACITY)
+    assert descriptor.capabilities.supports(ExecutorCapability.BOUNDED_CAPACITY)
 
 
 def test_async_executor_validates_contract_inputs() -> None:
@@ -317,6 +318,15 @@ def test_async_executor_validates_contract_inputs() -> None:
 
     asyncio.run(scenario())
 
+    with pytest.raises(TypeError, match="max_concurrency"):
+        AsyncExecutor(max_concurrency=cast(Any, True), clock=lambda: NOW)
+
+    with pytest.raises(TypeError, match="max_concurrency"):
+        AsyncExecutor(max_concurrency=cast(Any, "2"), clock=lambda: NOW)
+
+    with pytest.raises(ValueError, match=">= 1"):
+        AsyncExecutor(max_concurrency=0, clock=lambda: NOW)
+
     with pytest.raises(TypeError, match="clock must be callable"):
         AsyncExecutor(clock=cast(Any, object()))
 
@@ -338,5 +348,60 @@ def test_async_executor_rejects_context_for_other_workload() -> None:
                 ),
                 context,
             )
+
+    asyncio.run(scenario())
+
+
+def test_async_executor_enforces_bounded_concurrency() -> None:
+    async def scenario() -> None:
+        executor = AsyncExecutor(max_concurrency=2, clock=lambda: NOW)
+        release = asyncio.Event()
+        two_started = asyncio.Event()
+        started = 0
+        active = 0
+        peak = 0
+
+        async def implementation(received: ExecutionContext) -> object:
+            nonlocal active, peak, started
+            started += 1
+            active += 1
+            peak = max(peak, active)
+            if active == 2:
+                two_started.set()
+
+            try:
+                await release.wait()
+                return received.correlation_id
+            finally:
+                active -= 1
+
+        async def submit_one() -> ExecutionResult[object]:
+            workload = _workload()
+            return await executor.execute(
+                ResolvedAsyncWorkload(
+                    workload=workload,
+                    implementation=implementation,
+                ),
+                _context(workload),
+            )
+
+        tasks = [asyncio.create_task(submit_one()) for _ in range(3)]
+
+        await asyncio.wait_for(two_started.wait(), timeout=1)
+        await asyncio.sleep(0)
+
+        assert executor.max_concurrency == 2
+        assert executor.current_load == 2
+        assert started == 2
+        assert peak == 2
+        assert not tasks[2].done()
+
+        release.set()
+        results = await asyncio.gather(*tasks)
+
+        assert all(result.succeeded for result in results)
+        assert started == 3
+        assert peak == 2
+        assert executor.current_load == 0
 
     asyncio.run(scenario())

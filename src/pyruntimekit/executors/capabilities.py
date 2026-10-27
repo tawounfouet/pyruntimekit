@@ -56,6 +56,7 @@ ASYNC_EXECUTOR_CAPABILITIES = ExecutorCapabilities(
             ExecutorCapability.TRUSTED_ONLY,
             ExecutorCapability.ASYNC_EXECUTION,
             ExecutorCapability.CONTEXTVARS_PROPAGATION,
+            ExecutorCapability.BOUNDED_CAPACITY,
         }
     )
 )
@@ -68,6 +69,7 @@ THREAD_EXECUTOR_CAPABILITIES = ExecutorCapabilities(
             ExecutorCapability.TRUSTED_ONLY,
             ExecutorCapability.THREAD_EXECUTION,
             ExecutorCapability.THREAD_CONTEXT_PROPAGATION,
+            ExecutorCapability.BOUNDED_CAPACITY,
         }
     )
 )

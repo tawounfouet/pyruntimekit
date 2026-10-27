@@ -335,11 +335,12 @@ def test_thread_executor_capabilities_are_truthful_for_pr24() -> None:
                 ExecutorCapability.TRUSTED_ONLY,
                 ExecutorCapability.THREAD_EXECUTION,
                 ExecutorCapability.THREAD_CONTEXT_PROPAGATION,
+                ExecutorCapability.BOUNDED_CAPACITY,
             }
         )
         assert not descriptor.capabilities.supports(ExecutorCapability.ASYNC_EXECUTION)
         assert descriptor.capabilities.supports(ExecutorCapability.THREAD_CONTEXT_PROPAGATION)
-        assert not descriptor.capabilities.supports(ExecutorCapability.BOUNDED_CAPACITY)
+        assert descriptor.capabilities.supports(ExecutorCapability.BOUNDED_CAPACITY)
     finally:
         executor.close()
 
@@ -353,6 +354,15 @@ def test_thread_executor_validates_constructor_and_contract_inputs() -> None:
 
     with pytest.raises(ValueError, match=">= 1"):
         ThreadExecutor(max_workers=0, clock=lambda: NOW)
+
+    with pytest.raises(TypeError, match="max_in_flight"):
+        ThreadExecutor(max_workers=1, max_in_flight=cast(Any, True), clock=lambda: NOW)
+
+    with pytest.raises(TypeError, match="max_in_flight"):
+        ThreadExecutor(max_workers=1, max_in_flight=cast(Any, "2"), clock=lambda: NOW)
+
+    with pytest.raises(ValueError, match=">= 1"):
+        ThreadExecutor(max_workers=1, max_in_flight=0, clock=lambda: NOW)
 
     with pytest.raises(TypeError, match="clock must be callable"):
         ThreadExecutor(max_workers=1, clock=cast(Any, object()))
@@ -415,5 +425,148 @@ def test_close_is_idempotent_and_prevents_new_execution() -> None:
 
         with pytest.raises(RuntimeError, match="closed"):
             await executor.execute(resolved, context)
+
+    asyncio.run(scenario())
+
+
+def test_thread_executor_bounds_in_flight_submission_before_pool_queue() -> None:
+    async def scenario() -> None:
+        executor = ThreadExecutor(
+            max_workers=1,
+            max_in_flight=2,
+            clock=lambda: NOW,
+        )
+        release = threading.Event()
+        started = threading.Event()
+        starts = 0
+        starts_lock = threading.Lock()
+
+        def implementation(received: ExecutionContext) -> object:
+            nonlocal starts
+            with starts_lock:
+                starts += 1
+                started.set()
+            release.wait(timeout=2)
+            return received.correlation_id
+
+        async def submit_one() -> ExecutionResult[object]:
+            workload = _workload()
+            return await executor.execute(
+                ResolvedWorkload(
+                    workload=workload,
+                    implementation=implementation,
+                ),
+                _context(workload),
+            )
+
+        tasks = [asyncio.create_task(submit_one()) for _ in range(3)]
+
+        try:
+            for _ in range(200):
+                if started.is_set() and executor.current_load == 2:
+                    break
+                await asyncio.sleep(0.001)
+
+            assert started.is_set()
+            assert executor.max_in_flight == 2
+            assert executor.current_load == 2
+            assert starts == 1
+            assert not tasks[2].done()
+
+            release.set()
+            results = await asyncio.gather(*tasks)
+            await asyncio.sleep(0)
+
+            assert all(result.succeeded for result in results)
+            assert starts == 3
+            assert executor.current_load == 0
+        finally:
+            release.set()
+            executor.close()
+
+    asyncio.run(scenario())
+
+
+def test_thread_capacity_slot_survives_cancelled_await_until_backend_finishes() -> None:
+    async def scenario() -> None:
+        executor = ThreadExecutor(
+            max_workers=1,
+            max_in_flight=1,
+            clock=lambda: NOW,
+        )
+        first_started = threading.Event()
+        first_release = threading.Event()
+        first_completed = threading.Event()
+        second_started = threading.Event()
+
+        first_workload = _workload()
+        second_workload = _workload()
+
+        def first_implementation(received: ExecutionContext) -> object:
+            first_started.set()
+            first_release.wait(timeout=2)
+            first_completed.set()
+            return "first"
+
+        def second_implementation(received: ExecutionContext) -> object:
+            second_started.set()
+            return "second"
+
+        first_task = asyncio.create_task(
+            executor.execute(
+                ResolvedWorkload(
+                    workload=first_workload,
+                    implementation=first_implementation,
+                ),
+                _context(first_workload),
+            )
+        )
+
+        try:
+            for _ in range(200):
+                if first_started.is_set():
+                    break
+                await asyncio.sleep(0.001)
+
+            assert first_started.is_set()
+            assert executor.current_load == 1
+
+            first_task.cancel()
+            with pytest.raises(asyncio.CancelledError):
+                await first_task
+
+            assert executor.current_load == 1
+
+            second_task = asyncio.create_task(
+                executor.execute(
+                    ResolvedWorkload(
+                        workload=second_workload,
+                        implementation=second_implementation,
+                    ),
+                    _context(second_workload),
+                )
+            )
+            await asyncio.sleep(0.01)
+
+            assert not second_started.is_set()
+            assert executor.current_load == 1
+
+            first_release.set()
+
+            for _ in range(200):
+                if first_completed.is_set() and second_started.is_set():
+                    break
+                await asyncio.sleep(0.001)
+
+            second_result = await second_task
+            await asyncio.sleep(0)
+
+            assert first_completed.is_set()
+            assert second_started.is_set()
+            assert second_result.value == "second"
+            assert executor.current_load == 0
+        finally:
+            first_release.set()
+            executor.close()
 
     asyncio.run(scenario())
