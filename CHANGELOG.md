@@ -10,6 +10,7 @@ All notable changes to this project will be documented in this file.
 - Explicit `SubprocessCommand` / `ResolvedSubprocessWorkload` command boundary.
 - Capability vocabulary for process execution, subprocess execution, process isolation and serialized boundaries.
 - Initial `ProcessExecutor` backed by an owned `ProcessPoolExecutor`, with child-process isolation, result/failure normalization and explicit cleanup.
+- Initial `SubprocessExecutor` with shell-free argv execution, cwd/env control, stdout/stderr capture, exit-code preservation and normalized non-zero exits.
 
 ## [0.1.0a3] - 2026-10-27
 
