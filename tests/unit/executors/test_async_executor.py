@@ -215,9 +215,7 @@ def test_async_executor_capabilities_are_truthful_for_pr22() -> None:
         }
     )
     assert not descriptor.capabilities.supports(ExecutorCapability.THREAD_EXECUTION)
-    assert not descriptor.capabilities.supports(
-        ExecutorCapability.CONTEXTVARS_PROPAGATION
-    )
+    assert not descriptor.capabilities.supports(ExecutorCapability.CONTEXTVARS_PROPAGATION)
     assert not descriptor.capabilities.supports(ExecutorCapability.BOUNDED_CAPACITY)
 
 
