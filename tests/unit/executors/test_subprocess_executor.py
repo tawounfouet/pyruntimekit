@@ -14,6 +14,7 @@ import pytest
 from pyruntimekit.contexts import ExecutionContext
 from pyruntimekit.domain import (
     AttemptNumber,
+    ExecutionResult,
     FailureCategory,
     FailureOrigin,
     FailureScope,
@@ -334,7 +335,7 @@ def test_subprocess_executor_bounds_active_commands() -> None:
             clock=lambda: NOW,
         )
 
-        async def submit_one(label: str) -> object:
+        async def submit_one(label: str) -> ExecutionResult[object]:
             workload = _workload()
             return await executor.execute(
                 _resolved(
