@@ -212,9 +212,7 @@ def test_a4_isolated_executors_reject_context_for_another_workload(
                 await executor.execute(
                     ResolvedSubprocessWorkload(
                         workload=workload,
-                        command=SubprocessCommand(
-                            argv=(sys.executable, "-c", "print('unused')")
-                        ),
+                        command=SubprocessCommand(argv=(sys.executable, "-c", "print('unused')")),
                     ),
                     context,
                 )
@@ -317,10 +315,7 @@ def test_a4_isolated_executor_failures_are_normalized_and_safe() -> None:
 
         assert subprocess_result.failed
         assert subprocess_result.failure is not None
-        assert (
-            subprocess_result.failure.code.value
-            == "EXECUTOR.SUBPROCESS.NONZERO_EXIT"
-        )
+        assert subprocess_result.failure.code.value == "EXECUTOR.SUBPROCESS.NONZERO_EXIT"
         assert subprocess_result.failure.category is FailureCategory.EXECUTION
         assert subprocess_result.failure.origin is FailureOrigin.EXECUTOR
         assert subprocess_result.failure.scope is FailureScope.ATTEMPT
@@ -421,9 +416,7 @@ def test_a4_isolated_executor_close_is_idempotent_and_rejects_reuse(
             await executor.execute(
                 ResolvedSubprocessWorkload(
                     workload=workload,
-                    command=SubprocessCommand(
-                        argv=(sys.executable, "-c", "print('unused')")
-                    ),
+                    command=SubprocessCommand(argv=(sys.executable, "-c", "print('unused'"))),
                 ),
                 _context(workload, "closed"),
             )
