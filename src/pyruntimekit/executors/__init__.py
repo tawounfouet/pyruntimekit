@@ -12,10 +12,12 @@ from .base import (
     ResolvedAsyncWorkload,
     ResolvedCallable,
     ResolvedWorkload,
+    ThreadExecutorContract,
 )
 from .capabilities import (
     ASYNC_EXECUTOR_CAPABILITIES,
     INLINE_EXECUTOR_CAPABILITIES,
+    THREAD_EXECUTOR_CAPABILITIES,
     ExecutorCapabilities,
     ExecutorCapability,
 )
@@ -32,4 +34,6 @@ __all__ = [
     "ResolvedAsyncWorkload",
     "ResolvedCallable",
     "ResolvedWorkload",
+    "THREAD_EXECUTOR_CAPABILITIES",
+    "ThreadExecutorContract",
 ]
