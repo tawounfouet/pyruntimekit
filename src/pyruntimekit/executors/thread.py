@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import contextvars
 from collections.abc import Callable
+from contextlib import suppress
 from concurrent.futures import Future, ThreadPoolExecutor
 from datetime import UTC, datetime
 
@@ -152,11 +153,8 @@ class ThreadExecutor:
         future: Future[object],
     ) -> None:
         del future
-        try:
+        with suppress(RuntimeError):
             loop.call_soon_threadsafe(self._release_capacity)
-        except RuntimeError:
-            # The owning loop is already closed; the Executor cannot be reused there.
-            pass
 
     def _release_capacity(self) -> None:
         if self._current_load < 1:
